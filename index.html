@@ -52,8 +52,8 @@
 </head>
 <body class="p-4 flex flex-col items-center">
 
-    <!-- Main Container -->
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-7xl overflow-hidden p-6 md:p-8 relative hidden" id="app-container">
+    <!-- Main Application Container -->
+    <div id="app-container" class="bg-white rounded-2xl shadow-xl w-full max-w-7xl overflow-hidden p-6 md:p-8 relative hidden">
 
         <!-- Header -->
         <header class="flex flex-col md:flex-row items-center justify-between pb-6 mb-6 border-b border-gray-200">
@@ -78,16 +78,11 @@
 
             <!-- POS Tab -->
             <div id="pos-content" class="tab-content grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-                <!-- Product List Section -->
                 <div class="lg:col-span-2">
-                    <!-- Barcode Input -->
                     <div class="mb-4">
                         <label for="barcode-input" class="block text-sm font-medium text-gray-700 mb-1">Scan or Enter Barcode</label>
                         <input type="text" id="barcode-input" placeholder="Scan or enter barcode..." class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
                     </div>
-
-                    <!-- Product Search -->
                     <div class="flex items-center space-x-4 mb-4">
                         <input type="text" id="product-search" placeholder="Search products by name..." class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
                         <button id="clear-search-btn" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-400 transition-colors">Clear</button>
@@ -96,26 +91,18 @@
                         <!-- Product cards will be dynamically inserted here -->
                     </div>
                 </div>
-
-                <!-- Cart Section -->
                 <div class="lg:col-span-1">
                     <div class="bg-gray-100 rounded-2xl p-6 shadow-md h-full flex flex-col">
                         <h2 class="text-2xl font-bold text-gray-800 mb-4">Current Sale</h2>
-
-                        <!-- Customer Selection -->
                         <div class="mb-4">
                             <label for="customer-select" class="block text-sm font-medium text-gray-700">Select Customer</label>
                             <select id="customer-select" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                 <option value="">Walk-in Customer</option>
                             </select>
                         </div>
-
-                        <!-- Cart Items -->
                         <div id="cart-items" class="flex-grow max-h-[400px] overflow-y-auto custom-scrollbar mb-4">
                             <div class="text-center text-gray-500 py-8" id="empty-cart-message">Cart is empty.</div>
                         </div>
-
-                        <!-- Totals & Actions -->
                         <div class="border-t border-gray-300 pt-4 mt-auto">
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-lg font-medium text-gray-700">Subtotal:</span>
@@ -223,7 +210,7 @@
             <!-- Settings Tab -->
             <div id="settings-content" class="tab-content hidden">
                 <h2 class="text-2xl font-bold mb-4">Settings</h2>
-                <div class="bg-white rounded-2xl shadow p-6">
+                <div class="bg-white rounded-2xl shadow p-6 mb-6">
                     <h3 class="text-xl font-bold mb-4">Data Management</h3>
                     <div class="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-4">
                         <button id="export-cloud-btn" class="w-full md:w-auto bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-lg">
@@ -235,13 +222,41 @@
                     </div>
                     <div class="mt-6 text-sm text-gray-600">
                         <p>Note: Cloud functionality is simulated and will download/upload files to your local machine.</p>
+                        <p id="cloud-link-info" class="mt-2 hidden">Your Cloud Folder Link: <a id="cloud-link-display" href="#" target="_blank" class="text-blue-600 underline hover:text-blue-800"></a></p>
+                    </div>
+                </div>
+
+                <!-- Admin-only User Management Section -->
+                <div id="user-management-section" class="bg-white rounded-2xl shadow p-6 hidden">
+                    <h3 class="text-xl font-bold mb-4">User Management</h3>
+                    <form id="add-user-form" class="space-y-4">
+                        <div>
+                            <label for="new-user-email" class="block text-sm font-medium text-gray-700">New User Email</label>
+                            <input type="email" id="new-user-email" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label for="new-user-role" class="block text-sm font-medium text-gray-700">Role</label>
+                            <select id="new-user-role" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
+                            Add User
+                        </button>
+                    </form>
+                    <div class="mt-4">
+                        <h4 class="font-bold mb-2">Current Users</h4>
+                        <ul id="user-list" class="space-y-2 text-sm text-gray-700">
+                            <!-- Dynamically added users -->
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal Container -->
+    <!-- Modals -->
     <div id="modal-container" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-50 opacity-0 pointer-events-none">
         <div id="modal-content" class="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-lg transform -translate-y-4 transition-transform duration-300">
             <h3 id="modal-title" class="text-2xl font-bold text-gray-900 mb-4"></h3>
@@ -257,7 +272,7 @@
     <!-- Login/Signup Modal -->
     <div id="auth-modal" class="modal fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-50">
         <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
-            <h2 class="text-2xl font-bold text-center mb-6 text-gray-900">Sign Up or Log In</h2>
+            <h2 class="text-2xl font-bold text-center mb-6 text-gray-900" id="auth-title">Log In</h2>
             <div id="auth-error-message" class="text-red-500 text-sm text-center mb-4 hidden"></div>
             <form id="auth-form" class="space-y-4">
                 <div>
@@ -268,8 +283,19 @@
                     <label for="auth-password" class="block text-sm font-medium text-gray-700">Password</label>
                     <input type="password" id="auth-password" required class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
+                <div id="cloud-link-container" class="hidden">
+                    <label for="auth-cloud-link" class="block text-sm font-medium text-gray-700">Cloud Folder Link</label>
+                    <input type="url" id="auth-cloud-link" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                </div>
+                <div id="role-container" class="hidden">
+                    <label for="auth-role" class="block text-sm font-medium text-gray-700">Role</label>
+                    <select id="auth-role" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        <option value="admin">Admin</option>
+                        <option value="user">User</option>
+                    </select>
+                </div>
                 <button type="submit" id="auth-submit-btn" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
-                    Sign In
+                    Log In
                 </button>
                 <button type="button" id="auth-toggle-btn" class="w-full text-sm text-indigo-600 hover:text-indigo-800 transition-colors">
                     Don't have an account? Sign Up
@@ -288,9 +314,9 @@
 
     <!-- Firebase Script and Logic -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, addDoc, getDoc, getDocs, onSnapshot, query, where, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, getDoc, getDocs, onSnapshot, query, where, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global variables for Firebase configuration and app ID
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -300,11 +326,14 @@
         // Initialize Firebase
         let app, db, auth;
         let userId = null;
+        let userProfile = null; // Stores user data (role, cloud link)
         let isAuthReady = false;
 
         const PRODUCTS_COLLECTION = 'products';
         const CUSTOMERS_COLLECTION = 'customers';
         const SALES_COLLECTION = 'sales';
+        const USERS_COLLECTION = 'users';
+        const ACCESS_LIST_COLLECTION = 'access_list';
 
         const store = {
             products: [],
@@ -362,13 +391,25 @@
             modalPrimaryBtn: document.getElementById('modal-primary-btn'),
             modalSecondaryBtn: document.getElementById('modal-secondary-btn'),
             authModal: document.getElementById('auth-modal'),
+            authTitle: document.getElementById('auth-title'),
             authForm: document.getElementById('auth-form'),
             authEmail: document.getElementById('auth-email'),
             authPassword: document.getElementById('auth-password'),
+            authCloudLinkContainer: document.getElementById('cloud-link-container'),
+            authCloudLink: document.getElementById('auth-cloud-link'),
+            authRoleContainer: document.getElementById('role-container'),
+            authRole: document.getElementById('auth-role'),
             authSubmitBtn: document.getElementById('auth-submit-btn'),
             authToggleBtn: document.getElementById('auth-toggle-btn'),
             authErrorMessage: document.getElementById('auth-error-message'),
-            guestLoginBtn: document.getElementById('guest-login-btn')
+            guestLoginBtn: document.getElementById('guest-login-btn'),
+            cloudLinkInfo: document.getElementById('cloud-link-info'),
+            cloudLinkDisplay: document.getElementById('cloud-link-display'),
+            userManagementSection: document.getElementById('user-management-section'),
+            addUserForm: document.getElementById('add-user-form'),
+            newUserEmail: document.getElementById('new-user-email'),
+            newUserRole: document.getElementById('new-user-role'),
+            userList: document.getElementById('user-list')
         };
 
         let isSignup = false;
@@ -437,76 +478,101 @@
             return row;
         };
 
-        const renderProductTableRow = (product) => {
-            const row = document.createElement('tr');
-            row.className = 'border-b border-gray-200 hover:bg-gray-100';
-            row.innerHTML = `
-                <td class="py-3 px-6 text-left whitespace-nowrap">${product.barcode || 'N/A'}</td>
-                <td class="py-3 px-6 text-left whitespace-nowrap">${product.name}</td>
-                <td class="py-3 px-6 text-left">${product.category}</td>
-                <td class="py-3 px-6 text-left">${formatCurrency(product.price)}</td>
-                <td class="py-3 px-6 text-left">${product.stock}</td>
-                <td class="py-3 px-6 text-center">
-                    <div class="flex item-center justify-center space-x-2">
-                        <button class="edit-product-btn text-blue-600 hover:text-blue-800 transition-colors" data-id="${product.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-                        <button class="delete-product-btn text-red-500 hover:text-red-700 transition-colors" data-id="${product.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </td>
-            `;
-            row.querySelector('.edit-product-btn').addEventListener('click', () => editProduct(product.id));
-            row.querySelector('.delete-product-btn').addEventListener('click', () => confirmDeleteProduct(product.id));
-            return row;
+        const renderProductTable = () => {
+            elements.productTableBody.innerHTML = '';
+            store.products.forEach(product => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-200 hover:bg-gray-100';
+                row.innerHTML = `
+                    <td class="py-3 px-6 text-left whitespace-nowrap">${product.barcode || 'N/A'}</td>
+                    <td class="py-3 px-6 text-left whitespace-nowrap">${product.name}</td>
+                    <td class="py-3 px-6 text-left">${product.category}</td>
+                    <td class="py-3 px-6 text-left">${formatCurrency(product.price)}</td>
+                    <td class="py-3 px-6 text-left">${product.stock}</td>
+                    <td class="py-3 px-6 text-center">
+                        <div class="flex item-center justify-center space-x-2">
+                            <button class="edit-product-btn text-blue-600 hover:text-blue-800 transition-colors" data-id="${product.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </button>
+                            <button class="delete-product-btn text-red-500 hover:text-red-700 transition-colors" data-id="${product.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                row.querySelector('.edit-product-btn').addEventListener('click', () => editProduct(product.id));
+                row.querySelector('.delete-product-btn').addEventListener('click', () => confirmDeleteProduct(product.id));
+                elements.productTableBody.appendChild(row);
+            });
         };
 
-        const renderCustomerTableRow = (customer) => {
-            const row = document.createElement('tr');
-            row.className = 'border-b border-gray-200 hover:bg-gray-100';
-            row.innerHTML = `
-                <td class="py-3 px-6 text-left whitespace-nowrap">${customer.name}</td>
-                <td class="py-3 px-6 text-left">${customer.email || 'N/A'}</td>
-                <td class="py-3 px-6 text-left">${customer.phone || 'N/A'}</td>
-                <td class="py-3 px-6 text-center">
-                    <div class="flex item-center justify-center space-x-2">
-                        <button class="edit-customer-btn text-blue-600 hover:text-blue-800 transition-colors" data-id="${customer.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                        </button>
-                        <button class="delete-customer-btn text-red-500 hover:text-red-700 transition-colors" data-id="${customer.id}">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </td>
-            `;
-            row.querySelector('.edit-customer-btn').addEventListener('click', () => editCustomer(customer.id));
-            row.querySelector('.delete-customer-btn').addEventListener('click', () => confirmDeleteCustomer(customer.id));
-            return row;
+        const renderCustomerSelect = () => {
+            elements.customerSelect.innerHTML = '<option value="">Walk-in Customer</option>';
+            store.customers.forEach(customer => {
+                const option = document.createElement('option');
+                option.value = customer.id;
+                option.textContent = customer.name;
+                elements.customerSelect.appendChild(option);
+            });
+            if (store.currentCustomer) {
+                elements.customerSelect.value = store.currentCustomer.id;
+            } else {
+                elements.customerSelect.value = '';
+            }
         };
 
-        const renderSalesHistoryRow = (sale) => {
-            const row = document.createElement('tr');
-            row.className = 'border-b border-gray-200 hover:bg-gray-100';
-            row.innerHTML = `
-                <td class="py-3 px-6 text-left whitespace-nowrap">${sale.id}</td>
-                <td class="py-3 px-6 text-left">${new Date(sale.date).toLocaleDateString()}</td>
-                <td class="py-3 px-6 text-left">${sale.customerName}</td>
-                <td class="py-3 px-6 text-left">${formatCurrency(sale.total)}</td>
-                <td class="py-3 px-6 text-center">
-                    <button class="view-details-btn text-blue-600 hover:text-blue-800 transition-colors" data-id="${sale.id}">View</button>
-                </td>
-            `;
-            row.querySelector('.view-details-btn').addEventListener('click', () => viewSaleDetails(sale));
-            return row;
+        const renderCustomerTable = () => {
+            elements.customerTableBody.innerHTML = '';
+            store.customers.forEach(customer => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-200 hover:bg-gray-100';
+                row.innerHTML = `
+                    <td class="py-3 px-6 text-left whitespace-nowrap">${customer.name}</td>
+                    <td class="py-3 px-6 text-left">${customer.email || 'N/A'}</td>
+                    <td class="py-3 px-6 text-left">${customer.phone || 'N/A'}</td>
+                    <td class="py-3 px-6 text-center">
+                        <div class="flex item-center justify-center space-x-2">
+                            <button class="edit-customer-btn text-blue-600 hover:text-blue-800 transition-colors" data-id="${customer.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                </svg>
+                            </button>
+                            <button class="delete-customer-btn text-red-500 hover:text-red-700 transition-colors" data-id="${customer.id}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                row.querySelector('.edit-customer-btn').addEventListener('click', () => editCustomer(customer.id));
+                row.querySelector('.delete-customer-btn').addEventListener('click', () => confirmDeleteCustomer(customer.id));
+                elements.customerTableBody.appendChild(row);
+            });
+        };
+
+        const renderSalesHistoryTable = () => {
+            elements.salesHistoryBody.innerHTML = '';
+            store.sales.sort((a, b) => new Date(b.date) - new Date(a.date));
+            store.sales.forEach(sale => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-200 hover:bg-gray-100';
+                row.innerHTML = `
+                    <td class="py-3 px-6 text-left whitespace-nowrap">${sale.id}</td>
+                    <td class="py-3 px-6 text-left">${new Date(sale.date).toLocaleDateString()}</td>
+                    <td class="py-3 px-6 text-left">${sale.customerName}</td>
+                    <td class="py-3 px-6 text-left">${formatCurrency(sale.total)}</td>
+                    <td class="py-3 px-6 text-center">
+                        <button class="view-details-btn text-blue-600 hover:text-blue-800 transition-colors" data-id="${sale.id}">View</button>
+                    </td>
+                `;
+                row.querySelector('.view-details-btn').addEventListener('click', () => viewSaleDetails(sale));
+                elements.salesHistoryBody.appendChild(row);
+            });
         };
 
         // UI Rendering Functions
@@ -534,37 +600,6 @@
             updateTotals();
         };
 
-        const renderProductTable = () => {
-            elements.productTableBody.innerHTML = '';
-            store.products.forEach(product => elements.productTableBody.appendChild(renderProductTableRow(product)));
-        };
-
-        const renderCustomerSelect = () => {
-            elements.customerSelect.innerHTML = '<option value="">Walk-in Customer</option>';
-            store.customers.forEach(customer => {
-                const option = document.createElement('option');
-                option.value = customer.id;
-                option.textContent = customer.name;
-                elements.customerSelect.appendChild(option);
-            });
-            if (store.currentCustomer) {
-                elements.customerSelect.value = store.currentCustomer.id;
-            } else {
-                elements.customerSelect.value = '';
-            }
-        };
-
-        const renderCustomerTable = () => {
-            elements.customerTableBody.innerHTML = '';
-            store.customers.forEach(customer => elements.customerTableBody.appendChild(renderCustomerTableRow(customer)));
-        };
-
-        const renderSalesHistoryTable = () => {
-            elements.salesHistoryBody.innerHTML = '';
-            store.sales.sort((a, b) => new Date(b.date) - new Date(a.date));
-            store.sales.forEach(sale => elements.salesHistoryBody.appendChild(renderSalesHistoryRow(sale)));
-        };
-
         const renderReports = () => {
             elements.totalSalesValue.textContent = formatCurrency(store.reports.totalSales);
             elements.totalOrdersValue.textContent = store.reports.totalOrders;
@@ -575,10 +610,9 @@
         const updateTotals = () => {
             const subtotal = store.cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
             elements.subtotalElement.textContent = formatCurrency(subtotal);
-            elements.totalElement.textContent = formatCurrency(subtotal); // Assuming no tax or discount
+            elements.totalElement.textContent = formatCurrency(subtotal);
         };
 
-        // Data Management Functions
         const calculateReports = () => {
             const totalSales = store.sales.reduce((sum, sale) => sum + sale.total, 0);
             const totalOrders = store.sales.length;
@@ -640,7 +674,6 @@
             }
 
             try {
-                // Update product stock in a batch operation (simulated)
                 const updates = store.cart.map(item => {
                     const productRef = doc(db, 'artifacts', appId, 'public', 'data', PRODUCTS_COLLECTION, item.id);
                     return updateDoc(productRef, {
@@ -710,7 +743,7 @@
                 const stock = parseInt(document.getElementById('product-stock').value, 10);
 
                 if (!name || !category || isNaN(price) || isNaN(stock)) {
-                    showModal('Error', 'Please fill in all required fields with valid data.', false, null, true, hideModal);
+                    showModal('Error', 'Please fill in all required fields with valid data.', true, hideModal, false, null);
                     return;
                 }
 
@@ -821,7 +854,7 @@
                 customers: store.customers,
                 sales: store.sales,
                 exportDate: new Date().toISOString(),
-                exportedBy: store.currentUser.name
+                exportedBy: userProfile.email
             };
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -867,17 +900,13 @@
                         showModal('Importing Data', 'Please wait while your data is being imported...', false, null, false, null);
 
                         const batch = db.runTransaction(async (transaction) => {
-                            // Clear existing data (simulated, needs security rules for this)
                             const productsQuery = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', PRODUCTS_COLLECTION));
                             productsQuery.docs.forEach(doc => transaction.delete(doc.ref));
-
                             const customersQuery = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', CUSTOMERS_COLLECTION));
                             customersQuery.docs.forEach(doc => transaction.delete(doc.ref));
-
                             const salesQuery = await getDocs(collection(db, 'artifacts', appId, 'public', 'data', SALES_COLLECTION));
                             salesQuery.docs.forEach(doc => transaction.delete(doc.ref));
 
-                            // Add new data
                             data.products.forEach(p => {
                                 const newDocRef = doc(collection(db, 'artifacts', appId, 'public', 'data', PRODUCTS_COLLECTION));
                                 transaction.set(newDocRef, p);
@@ -929,6 +958,43 @@
                 </div>
             `;
             showModal('Sale Details', `Total: ${formatCurrency(sale.total)}`, false, null, true, hideModal, additionalContent);
+        };
+
+        // User Management (Admin Only)
+        const addUser = async (email, role) => {
+            try {
+                // Add the user to a public access list
+                const docRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', ACCESS_LIST_COLLECTION), {
+                    email,
+                    role
+                });
+                showModal('Success', `${role} user with email ${email} added. Their ID is: ${docRef.id}`, false, null, true, hideModal);
+            } catch (error) {
+                console.error("Error adding user:", error);
+                showModal('Error', 'Failed to add user. Please try again.', false, null, true, hideModal);
+            }
+        };
+
+        const renderUserList = (users) => {
+            elements.userList.innerHTML = '';
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.className = 'bg-gray-100 p-2 rounded-lg flex justify-between items-center';
+                li.innerHTML = `
+                    <span>${user.email} - <span class="font-bold">${user.role}</span></span>
+                    <button class="text-red-500 hover:text-red-700 transition-colors" data-id="${user.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+                `;
+                li.querySelector('button').addEventListener('click', async () => {
+                    if (confirm(`Are you sure you want to remove ${user.email}?`)) {
+                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', ACCESS_LIST_COLLECTION, user.id));
+                    }
+                });
+                elements.userList.appendChild(li);
+            });
         };
 
         // Event Listeners
@@ -989,38 +1055,69 @@
         elements.exportCloudBtn.addEventListener('click', exportData);
         elements.importCloudBtn.addEventListener('click', importData);
 
+        elements.addUserForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = elements.newUserEmail.value.trim();
+            const role = elements.newUserRole.value;
+            if (email) {
+                await addUser(email, role);
+                elements.newUserEmail.value = '';
+            }
+        });
+
         // Auth listeners
+        let isAuthenticating = false;
+
         elements.authToggleBtn.addEventListener('click', () => {
             isSignup = !isSignup;
-            elements.authSubmitBtn.textContent = isSignup ? 'Sign Up' : 'Sign In';
-            elements.authToggleBtn.textContent = isSignup ? 'Already have an account? Sign In' : 'Don\'t have an account? Sign Up';
+            elements.authTitle.textContent = isSignup ? 'Sign Up' : 'Log In';
+            elements.authSubmitBtn.textContent = isSignup ? 'Sign Up' : 'Log In';
+            elements.authToggleBtn.textContent = isSignup ? 'Already have an account? Log In' : 'Don\'t have an account? Sign Up';
+            elements.authCloudLinkContainer.classList.toggle('hidden', !isSignup);
+            elements.authRoleContainer.classList.toggle('hidden', !isSignup);
         });
 
         elements.authForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (isAuthenticating) return;
+            isAuthenticating = true;
+            elements.authSubmitBtn.disabled = true;
+            elements.authErrorMessage.classList.add('hidden');
             const email = elements.authEmail.value;
             const password = elements.authPassword.value;
-            elements.authErrorMessage.classList.add('hidden');
+
             try {
+                let userCredential;
                 if (isSignup) {
-                    await createUserWithEmailAndPassword(auth, email, password);
+                    const cloudLink = elements.authCloudLink.value.trim();
+                    const role = elements.authRole.value;
+                    userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    const userRef = doc(db, 'artifacts', appId, USERS_COLLECTION, userCredential.user.uid);
+                    await setDoc(userRef, { email: userCredential.user.email, role, cloudLink: cloudLink || '' });
                 } else {
-                    await signInWithEmailAndPassword(auth, email, password);
+                    userCredential = await signInWithEmailAndPassword(auth, email, password);
                 }
             } catch (error) {
-                console.error("Auth Error:", error.message);
+                console.error("Auth Error:", error);
                 elements.authErrorMessage.textContent = error.message;
                 elements.authErrorMessage.classList.remove('hidden');
+            } finally {
+                isAuthenticating = false;
+                elements.authSubmitBtn.disabled = false;
             }
         });
 
         elements.guestLoginBtn.addEventListener('click', async () => {
+            if (isAuthenticating) return;
+            isAuthenticating = true;
             try {
                 await signInAnonymously(auth);
             } catch (error) {
                 console.error("Anonymous sign-in failed:", error.message);
                 elements.authErrorMessage.textContent = error.message;
                 elements.authErrorMessage.classList.remove('hidden');
+            } finally {
+                isAuthenticating = false;
             }
         });
         
@@ -1034,7 +1131,6 @@
 
         elements.logoutBtn.addEventListener('click', handleLogout);
         
-        // Initializer
         const init = async () => {
             app = initializeApp(firebaseConfig);
             db = getFirestore(app);
@@ -1043,27 +1139,62 @@
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
                     userId = user.uid;
-                    const userDoc = await getDoc(doc(db, 'artifacts', appId, 'users', userId));
-                    let userName = `User_${user.uid.substring(0, 6)}`;
-                    if (userDoc.exists()) {
-                        store.currentUser = userDoc.data();
-                        userName = store.currentUser.name || userName;
-                    } else if (user.isAnonymous) {
-                         store.currentUser = { name: userName, cloudLink: 'https://www.dropbox.com' };
-                    } else { // New email/password user
-                         store.currentUser = { name: user.email, cloudLink: 'https://www.dropbox.com' };
-                    }
-                    await setDoc(doc(db, 'artifacts', appId, 'users', userId), store.currentUser, { merge: true });
-                    elements.currentUserInfo.textContent = `Logged in as: ${userName}`;
+                    const userRef = doc(db, 'artifacts', appId, USERS_COLLECTION, userId);
+                    const userDoc = await getDoc(userRef);
                     
-                    elements.authModal.classList.add('hidden');
-                    elements.appContainer.classList.remove('hidden');
-                    isAuthReady = true;
-                    // Start listening to collections after auth is ready
-                    setupFirestoreListeners();
+                    if (user.isAnonymous) {
+                         userProfile = { role: 'guest' };
+                    } else if (userDoc.exists()) {
+                         userProfile = userDoc.data();
+                    } else {
+                         // A new user might be signed in via email/password but their profile wasn't created
+                         // If we are not in signup mode, treat them as a user.
+                         if (!isSignup) {
+                            userProfile = { email: user.email, role: 'user', cloudLink: '' };
+                            await setDoc(userRef, userProfile);
+                         } else {
+                            // During signup, the profile is created above.
+                            userProfile = { email: user.email, role: elements.authRole.value, cloudLink: elements.authCloudLink.value };
+                         }
+                    }
+
+                    // Check if the user is authorized
+                    let isAuthorized = false;
+                    if (userProfile.role === 'admin' || user.isAnonymous) {
+                         isAuthorized = true;
+                    } else { // Normal users must be on the access list
+                        const accessQuery = query(collection(db, 'artifacts', appId, 'public', 'data', ACCESS_LIST_COLLECTION), where('email', '==', user.email));
+                        const accessSnapshot = await getDocs(accessQuery);
+                        isAuthorized = !accessSnapshot.empty;
+                    }
+
+                    if (isAuthorized) {
+                        elements.currentUserInfo.textContent = `Logged in as: ${userProfile.email || 'Guest'} (${userProfile.role || 'Guest'})`;
+                        
+                        if (userProfile.role !== 'admin') {
+                            document.getElementById('settings-tab').classList.add('hidden');
+                        } else {
+                            document.getElementById('settings-tab').classList.remove('hidden');
+                            elements.userManagementSection.classList.remove('hidden');
+                            if (userProfile.cloudLink) {
+                                elements.cloudLinkInfo.classList.remove('hidden');
+                                elements.cloudLinkDisplay.href = userProfile.cloudLink;
+                                elements.cloudLinkDisplay.textContent = userProfile.cloudLink;
+                            }
+                        }
+                        
+                        elements.authModal.classList.add('hidden');
+                        elements.appContainer.classList.remove('hidden');
+                        isAuthReady = true;
+                        setupFirestoreListeners();
+                    } else {
+                        await signOut(auth);
+                        showModal('Access Denied', 'Your account has not been authorized by an admin.', false, null, true, hideModal);
+                    }
                 } else {
                     elements.authModal.classList.remove('hidden');
                     elements.appContainer.classList.add('hidden');
+                    isAuthReady = false;
                 }
             });
         };
@@ -1094,6 +1225,14 @@
                    calculateReports();
                 }
             });
+
+            // Admin User List Listener
+            if (userProfile && userProfile.role === 'admin') {
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', ACCESS_LIST_COLLECTION), (snapshot) => {
+                    const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    renderUserList(users);
+                });
+            }
         };
 
         window.onload = init;
