@@ -1,967 +1,1529 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wholesale POS - Local Version</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-            min-height: 100vh;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wholesale POS - Complete Solution</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Chart.js for data visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- QuaggaJS for barcode scanning -->
+<script src="https://cdn.jsdelivr.net/npm/quagga/dist/quagga.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    min-height: 100vh;
+}
 
-        .active-tab {
-            background-color: #4f46e5;
-            color: white;
-        }
+.active-tab {
+    background-color: #4f46e5;
+    color: white;
+}
 
-        .product-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 15px 3px rgba(0, 0, 0, 0.1);
-        }
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px 3px rgba(0, 0, 0, 0.1);
+}
 
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
 
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
 
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #c5c5c5;
-            border-radius: 10px;
-        }
-    </style>
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c5c5c5;
+    border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.modal-content {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.tab-content {
+    animation: slideIn 0.5s ease-in-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Print-specific styles for the receipt */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #receipt-modal-content, #receipt-modal-content * {
+        visibility: visible;
+    }
+    #receipt-modal-content {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto;
+        padding: 20px;
+        background-color: white;
+    }
+    .no-print {
+        display: none !important;
+    }
+}
+</style>
 </head>
-<body class="bg-gray-100 p-8 flex flex-col items-center">
+<body>
 
-    <!-- Main Application Container -->
-    <div id="appContainer" class="bg-white rounded-3xl shadow-xl w-full max-w-7xl overflow-hidden p-6 relative">
-        <!-- Header -->
-        <header class="flex flex-col sm:flex-row justify-between items-center mb-6 border-b pb-4">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2 sm:mb-0">Wholesale POS</h1>
-            <nav id="navTabs" class="flex space-x-2 sm:space-x-4">
-                <button data-tab="pos" class="px-4 py-2 rounded-full font-medium text-sm sm:text-base transition-colors duration-200">POS</button>
-                <button data-tab="inventory" class="px-4 py-2 rounded-full font-medium text-sm sm:text-base transition-colors duration-200">Inventory</button>
-                <button data-tab="customers" class="px-4 py-2 rounded-full font-medium text-sm sm:text-base transition-colors duration-200">Customers</button>
-                <button data-tab="reports" class="px-4 py-2 rounded-full font-medium text-sm sm:text-base transition-colors duration-200">Reports</button>
-                <button data-tab="settings" class="px-4 py-2 rounded-full font-medium text-sm sm:text-base transition-colors duration-200">Settings</button>
-            </nav>
-        </header>
+<!-- Main application container -->
+<div id="app-container" class="hidden">
+    <!-- Header -->
+    <header class="bg-white shadow-sm p-4 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-bold text-gray-800">Wholesale POS</h1>
+            <div class="relative">
+                <button id="auth-info-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-full transition-colors duration-300 shadow-lg">
+                    <span id="user-display-name">Loading...</span>
+                </button>
+            </div>
+        </div>
+    </header>
 
-        <!-- Main Content Area -->
-        <main id="contentArea">
-            <!-- POS Section -->
-            <section id="posSection" class="tab-content grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Products Panel -->
-                <div class="lg:col-span-2 bg-gray-50 p-4 rounded-xl shadow-inner">
-                    <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold text-gray-700">Products</h2>
-                        <div class="flex items-center space-x-2 mt-2 sm:mt-0 w-full sm:w-auto">
-                            <input id="productSearch" type="text" placeholder="Search products..." class="w-full sm:w-auto p-2 border rounded-full text-sm">
-                            <button id="cartCheckoutBtn" class="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition-colors duration-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path d="M3 1a1 1 0 000 2h18a1 1 0 000-2H3zM3 4a1 1 0 000 2h18a1 1 0 000-2H3zM3 7a1 1 0 000 2h18a1 1 0 000-2H3zM3 10a1 1 0 000 2h18a1 1 0 000-2H3z" />
+    <!-- Main Content Area -->
+    <main class="container mx-auto p-4 md:p-8">
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-xl shadow-lg p-2 mb-6 flex flex-wrap justify-between items-center">
+            <button class="tab-btn active-tab flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors duration-300" data-tab="pos">Point of Sale</button>
+            <button class="tab-btn flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors duration-300" data-tab="products">Products</button>
+            <button class="tab-btn flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors duration-300" data-tab="customers">Customers</button>
+            <button class="tab-btn flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors duration-300" data-tab="sales">Sales History</button>
+            <button class="tab-btn flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors duration-300" data-tab="reports">Reports</button>
+            <button class="tab-btn flex-1 py-3 px-4 text-sm font-medium rounded-lg transition-colors duration-300" data-tab="settings">Settings</button>
+        </div>
+
+        <!-- Tab Content Containers -->
+        <!-- POS Tab -->
+        <div id="pos-tab" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Product List -->
+                <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Products</h2>
+                    <input type="text" id="product-search" placeholder="Search products or scan barcode..." class="w-full p-3 rounded-lg border-2 border-gray-300 focus:outline-none focus:border-indigo-500 transition-colors duration-300 mb-4">
+                    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 custom-scrollbar overflow-y-auto h-[600px] pr-2">
+                        <!-- Product cards will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Sales Cart -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-2xl font-semibold mb-4 text-gray-800">Sales Cart</h2>
+                    <div class="mb-4">
+                        <label for="customer-select" class="block text-sm font-medium text-gray-700">Select Customer</label>
+                        <select id="customer-select" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-lg shadow-sm">
+                            <option value="">Walk-in Customer</option>
+                        </select>
+                    </div>
+                    <div id="cart-list" class="space-y-4 mb-6 custom-scrollbar overflow-y-auto h-[400px] pr-2">
+                        <!-- Cart items will be rendered here -->
+                        <p id="empty-cart-message" class="text-center text-gray-500">Your cart is empty.</p>
+                    </div>
+                    <div class="border-t pt-4">
+                        <div class="flex justify-between items-center text-xl font-bold mb-2">
+                            <span>Subtotal:</span>
+                            <span id="cart-subtotal-display">0.00 MMK</span>
+                        </div>
+                        <div class="mb-4">
+                            <label for="discount-input" class="block text-sm font-medium text-gray-700">Discount (%)</label>
+                            <input type="number" id="discount-input" value="0" min="0" max="100" class="w-full p-2 rounded-lg border-2" />
+                        </div>
+                        <div class="flex justify-between items-center text-2xl font-bold mb-4">
+                            <span>Total:</span>
+                            <span id="cart-total-display">0.00 MMK</span>
+                        </div>
+                        <div class="mb-4">
+                            <label for="payment-method-select" class="block text-sm font-medium text-gray-700">Payment Method</label>
+                            <select id="payment-method-select" class="w-full p-2 rounded-lg border-2">
+                                <option value="Cash">Cash</option>
+                                <option value="Mobile Payment">Mobile Payment</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Card Payment">Card Payment</option>
+                            </select>
+                        </div>
+                        <button id="process-sale-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-300 shadow-lg">Process Sale</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Tab -->
+        <div id="products-tab" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Manage Products</h2>
+                <form id="product-form" class="space-y-4 mb-6">
+                    <input type="hidden" id="product-id">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                        <input type="text" id="product-name" class="w-full p-3 rounded-lg border-2" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Supplier Name</label>
+                        <input type="text" id="product-supplier" class="w-full p-3 rounded-lg border-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Selling Price (MMK)</label>
+                        <input type="number" id="product-price" class="w-full p-3 rounded-lg border-2" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Buying Price (MMK)</label>
+                        <input type="number" id="product-buying-price" class="w-full p-3 rounded-lg border-2" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Stock Quantity</label>
+                        <input type="number" id="product-stock" class="w-full p-3 rounded-lg border-2" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Barcode</label>
+                        <div class="flex items-center space-x-2">
+                            <input type="text" id="product-barcode" class="w-full p-3 rounded-lg border-2" placeholder="Scan or enter barcode">
+                            <button type="button" id="scan-barcode-btn" class="bg-indigo-500 text-white p-3 rounded-lg hover:bg-indigo-600 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                                    <path d="M3.75 4.5a.75.75 0 00-.75.75v3h-.75a.75.75 0 000 1.5h.75v3h-.75a.75.75 0 000 1.5h.75v3a.75.75 0 00.75.75h3a.75.75 0 001.5 0v-.75h3v.75a.75.75 0 001.5 0v-.75h3v.75a.75.75 0 00.75-.75v-3h.75a.75.75 0 000-1.5h-.75v-3h.75a.75.75 0 000-1.5h-.75v-3a.75.75 0 00-.75-.75h-3a.75.75 0 00-1.5 0v.75h-3v-.75a.75.75 0 00-1.5 0v.75h-3v-.75a.75.75 0 00-.75.75z" />
                                 </svg>
                             </button>
                         </div>
                     </div>
-                    <div id="productsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 overflow-y-auto h-[50vh] custom-scrollbar">
-                        <!-- Product cards will be rendered here -->
-                    </div>
-                </div>
-                <!-- Cart Panel -->
-                <div class="bg-gray-50 p-4 rounded-xl shadow-inner">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-4">Cart</h2>
-                    <select id="customerSelect" class="w-full p-2 mb-4 border rounded-lg text-sm">
-                        <option value="">Select Customer (Optional)</option>
-                    </select>
-                    <div id="cartItems" class="overflow-y-auto h-[35vh] custom-scrollbar">
-                        <!-- Cart items will be rendered here -->
-                    </div>
-                    <div class="mt-4 pt-4 border-t-2 border-gray-200">
-                        <div class="flex justify-between font-bold text-gray-700 text-lg">
-                            <span>Total:</span>
-                            <span id="cartTotal">$0.00</span>
-                        </div>
-                    </div>
-                    <button id="processSaleBtn" class="w-full mt-4 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow hover:bg-indigo-700 transition-colors duration-200">Process Sale</button>
-                </div>
-            </section>
-
-            <!-- Inventory Section -->
-            <section id="inventorySection" class="tab-content hidden">
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-700">Product Inventory</h2>
-                    <div class="flex space-x-2 mt-2 sm:mt-0">
-                        <button id="importBtn" class="bg-green-500 text-white px-4 py-2 rounded-full text-sm hover:bg-green-600 transition-colors duration-200">Import CSV</button>
-                        <button id="addProductBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-full text-sm hover:bg-indigo-700 transition-colors duration-200">Add Product</button>
-                    </div>
-                </div>
-                <div id="productTableContainer" class="bg-gray-50 p-4 rounded-xl shadow-inner overflow-x-auto">
-                    <!-- Product table will be rendered here -->
-                </div>
-            </section>
-
-            <!-- Customers Section -->
-            <section id="customersSection" class="tab-content hidden">
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-700">Customer List</h2>
-                    <button id="addCustomerBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-full text-sm mt-2 sm:mt-0 hover:bg-indigo-700 transition-colors duration-200">Add Customer</button>
-                </div>
-                <div id="customerTableContainer" class="bg-gray-50 p-4 rounded-xl shadow-inner overflow-x-auto">
-                    <!-- Customer table will be rendered here -->
-                </div>
-            </section>
-
-            <!-- Reports Section -->
-            <section id="reportsSection" class="tab-content hidden">
-                <h2 class="text-xl font-semibold text-gray-700 mb-4">Reports</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-blue-200 p-4 rounded-xl shadow-md text-center">
-                        <p class="text-sm font-medium text-blue-800">Total Sales</p>
-                        <p id="totalSales" class="text-2xl font-bold text-blue-900 mt-1">$0.00</p>
-                    </div>
-                    <div class="bg-green-200 p-4 rounded-xl shadow-md text-center">
-                        <p class="text-sm font-medium text-green-800">Total Revenue</p>
-                        <p id="totalRevenue" class="text-2xl font-bold text-green-900 mt-1">$0.00</p>
-                    </div>
-                    <div class="bg-yellow-200 p-4 rounded-xl shadow-md text-center">
-                        <p class="text-sm font-medium text-yellow-800">Total Profit</p>
-                        <p id="totalProfit" class="text-2xl font-bold text-yellow-900 mt-1">$0.00</p>
-                    </div>
-                    <div class="bg-red-200 p-4 rounded-xl shadow-md text-center">
-                        <p class="text-sm font-medium text-red-800">Total Cost</p>
-                        <p id="totalCost" class="text-2xl font-bold text-red-900 mt-1">$0.00</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-gray-50 p-4 rounded-xl shadow-inner">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Sales History</h3>
-                        <div id="salesHistoryTableContainer" class="overflow-x-auto">
-                            <!-- Sales history table will be rendered here -->
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 p-4 rounded-xl shadow-inner">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Top Selling Products</h3>
-                        <div id="topSellingProductsContainer" class="overflow-x-auto">
-                            <table class="w-full text-sm text-left text-gray-500">
-                                <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                                    <tr>
-                                        <th scope="col" class="py-3 px-6 rounded-tl-lg">Product Name</th>
-                                        <th scope="col" class="py-3 px-6">Quantity Sold</th>
-                                        <th scope="col" class="py-3 px-6 rounded-tr-lg">Revenue</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="topSellingProductsTableBody">
-                                    <!-- Top selling products will be rendered here -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Settings Section -->
-            <section id="settingsSection" class="tab-content hidden">
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-700">Settings</h2>
-                    <div class="flex space-x-2 mt-2 sm:mt-0">
-                        <button id="exportAllDataBtn" class="bg-blue-500 text-white px-4 py-2 rounded-full text-sm hover:bg-blue-600 transition-colors duration-200">Export All Data</button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-gray-50 p-4 rounded-xl shadow-inner">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">API Information</h3>
-                        <p class="text-sm text-gray-600 mb-2">API is used for AI-powered features. To use the app with AI features, please set up API credentials by clicking the button below.</p>
-                        <p class="text-sm font-bold text-gray-700">No API key is required to use this app.</p>
-                    </div>
-                    <div class="bg-gray-50 p-4 rounded-xl shadow-inner">
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Admin Panel</h3>
-                        <p class="text-sm text-gray-600">The application is currently running in Admin mode, so all features are enabled. This is the default for local development.</p>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <!-- Modals -->
-    <!-- Generic Modal for Add/Edit -->
-    <div id="genericModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="modalTitle" class="text-2xl font-bold text-gray-800"></h3>
-                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors duration-200">&times;</button>
-            </div>
-            <div id="modalContent"></div>
-        </div>
-    </div>
-
-    <!-- Notification Modal -->
-    <div id="notificationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md text-center">
-            <h3 id="notificationTitle" class="text-xl font-bold text-gray-800 mb-2"></h3>
-            <p id="notificationMessage" class="text-gray-600 mb-4"></p>
-            <div id="notificationActions" class="flex justify-center space-x-4">
-                <button id="notificationPrimaryBtn" class="bg-indigo-600 text-white px-6 py-2 rounded-full hover:bg-indigo-700 transition-colors duration-200">OK</button>
-                <button id="notificationSecondaryBtn" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-400 transition-colors duration-200">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Import CSV Modal -->
-    <div id="importModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-2xl font-bold text-gray-800">Import CSV</h3>
-                <button id="closeImportModalBtn" class="text-gray-400 hover:text-gray-600 transition-colors duration-200">&times;</button>
-            </div>
-            <div class="modal-content">
-                <p class="text-gray-600 mb-4">Select the type of data you want to import and choose a CSV file. The file must have the correct headers.</p>
-                <div class="space-y-4">
                     <div>
-                        <label for="importType" class="block text-sm font-medium text-gray-700">Data Type</label>
-                        <select id="importType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2">
-                            <option value="products">Products</option>
-                            <option value="customers">Customers</option>
+                        <label class="block text-sm font-medium text-gray-700">Product Photo</label>
+                        <input type="url" id="product-photo-url" class="w-full p-3 rounded-lg border-2" placeholder="Paste image URL here">
+                        <div id="product-photo-drop-area" class="mt-2 flex justify-center items-center h-24 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                            <p class="text-gray-500">Drag & Drop Image Here</p>
+                            <input type="file" id="product-photo-upload" class="hidden" accept="image/*">
+                        </div>
+                        <img id="product-photo-preview" class="mt-4 w-32 h-32 object-contain rounded-lg shadow-md border" src="https://placehold.co/128x128/e5e7eb/4b5563?text=No+Image" alt="Product Photo Preview">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">Save Product</button>
+                </form>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg shadow-lg">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Photo</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Supplier</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Barcode</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Price (MMK)</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Buying Price</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Stock</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-table-body" class="divide-y divide-gray-200">
+                            <!-- Product rows will be rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customers Tab -->
+        <div id="customers-tab" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Manage Customers</h2>
+                <form id="customer-form" class="space-y-4 mb-6">
+                    <input type="hidden" id="customer-id">
+                    <div><label class="block text-sm font-medium text-gray-700">Customer Name</label><input type="text" id="customer-name" class="w-full p-3 rounded-lg border-2" required></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Phone Number</label><input type="text" id="customer-phone" class="w-full p-3 rounded-lg border-2"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">City</label><input type="text" id="customer-city" class="w-full p-3 rounded-lg border-2"></div>
+                    <div><label class="block text-sm font-medium text-gray-700">Township</label><input type="text" id="customer-township" class="w-full p-3 rounded-lg border-2"></div>
+                    <button type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">Save Customer</button>
+                </form>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg shadow-lg">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">City</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Township</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-table-body" class="divide-y divide-gray-200">
+                            <!-- Customer rows will be rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales History Tab -->
+        <div id="sales-tab" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Sales History</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white rounded-lg shadow-lg">
+                        <thead class="bg-gray-200">
+                            <tr>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Customer</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Total Amount</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Discount</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment Method</th>
+                                <th class="py-3 px-6 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Items Sold</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sales-history-table-body" class="divide-y divide-gray-200">
+                            <!-- Sales history will be rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="reports-tab" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Sales Reports</h2>
+                <!-- Sales Summary Metrics -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-indigo-500 text-white rounded-xl p-6 shadow-lg">
+                        <p class="text-sm font-medium opacity-80">Today's Sales</p>
+                        <div class="flex items-center justify-between">
+                            <span id="today-sales-value" class="text-3xl font-bold mt-1">0.00 MMK</span>
+                            <span id="today-sales-change" class="text-sm font-semibold p-1 rounded-full bg-white bg-opacity-20"></span>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                        <p class="text-sm font-medium text-gray-500">Total Sales</p>
+                        <span id="total-sales-value" class="text-3xl font-bold text-gray-800 mt-1">0.00 MMK</span>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                        <p class="text-sm font-medium text-gray-500">Total Transactions</p>
+                        <span id="total-transactions-value" class="text-3xl font-bold text-gray-800 mt-1">0</span>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
+                        <p class="text-sm font-medium text-gray-500">Average Transaction</p>
+                        <span id="average-transaction-value" class="text-3xl font-bold text-gray-800 mt-1">0.00 MMK</span>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-lg col-span-1 md:col-span-2 border border-gray-200">
+                        <p class="text-sm font-medium text-gray-500">Highest Sales Days</p>
+                        <ul id="highest-sales-days-list" class="mt-2 list-disc pl-5">
+                            <li class="text-gray-600">No data available.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-white rounded-xl p-6 shadow-lg col-span-1 md:col-span-2 border border-gray-200">
+                        <p class="text-sm font-medium text-gray-500">Monthly Sales</p>
+                        <div class="mt-2">
+                             <canvas id="monthly-sales-chart" class="h-48"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sales Charts -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Line Chart -->
+                    <div class="bg-gray-100 rounded-xl p-4 shadow-inner">
+                        <h3 class="text-lg font-semibold mb-2">Weekly Sales Trend</h3>
+                        <canvas id="sales-line-chart"></canvas>
+                    </div>
+                    <!-- Bar Chart -->
+                    <div class="bg-gray-100 rounded-xl p-4 shadow-inner">
+                        <h3 class="text-lg font-semibold mb-2">Sales by Category</h3>
+                        <canvas id="sales-bar-chart"></canvas>
+                    </div>
+                    <!-- Pie Chart -->
+                    <div class="bg-gray-100 rounded-xl p-4 shadow-inner">
+                        <h3 class="text-lg font-semibold mb-2">Sales by Customer</h3>
+                        <canvas id="sales-pie-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Settings Tab -->
+        <div id="settings-tab" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-2xl font-semibold mb-4 text-gray-800">Company Settings</h2>
+                <form id="settings-form" class="space-y-6 mb-6">
+                    <!-- Company Info -->
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">Company Information</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Company Name</label>
+                                <input type="text" id="company-name-input" class="w-full p-3 rounded-lg border-2" placeholder="e.g., Your Shop Name">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Company Logo URL</label>
+                                <input type="url" id="company-logo-url-input" class="w-full p-3 rounded-lg border-2" placeholder="Paste a logo image URL here">
+                                <p class="text-sm text-gray-500 mt-1">Or drag and drop an image file below.</p>
+                                <div id="logo-drop-area" class="mt-2 flex justify-center items-center h-24 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer">
+                                    <p class="text-gray-500">Drag & Drop Image Here</p>
+                                    <input type="file" id="logo-upload-input" class="hidden" accept="image/*">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Storage Location -->
+                    <div>
+                        <h3 class="text-xl font-semibold mb-2">Data Storage Location</h3>
+                        <p class="text-gray-600 text-sm mb-2">Choose where your data will be saved. Changing this will refresh the app with the data from the new location.</p>
+                        <select id="data-storage-select" class="w-full p-3 rounded-lg border-2">
+                            <option value="private">Private (My Data Only)</option>
+                            <option value="public">Public (Shared with others)</option>
                         </select>
                     </div>
-                    <div>
-                        <label for="importFile" class="block text-sm font-medium text-gray-700">CSV File</label>
-                        <input type="file" id="importFile" accept=".csv" class="mt-1 block w-full text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100"/>
+
+                    <button type="submit" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">Save Settings</button>
+                </form>
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold mb-2">Current Settings Preview</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg flex items-center space-x-4 border border-gray-200">
+                        <img id="logo-preview" src="https://placehold.co/60x60/888888/ffffff?text=Logo" alt="Company Logo" class="w-16 h-16 object-contain rounded-full shadow">
+                        <h4 id="company-name-preview" class="text-lg font-bold">Your Company Name</h4>
                     </div>
                 </div>
-                <div class="mt-6 flex justify-end">
-                    <button id="confirmImportBtn" class="bg-indigo-600 text-white px-6 py-2 rounded-full hover:bg-indigo-700 transition-colors duration-200">Import</button>
-                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- All Modals Container -->
+<div id="modal-container" class="relative z-[100]">
+    <!-- Generic Modal -->
+    <div id="generic-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4">
+        <div id="generic-modal-content" class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm modal-content">
+            <h3 id="modal-title" class="text-xl font-bold mb-4">Modal Title</h3>
+            <p id="modal-message" class="text-gray-600 mb-6">Modal Message.</p>
+            <div id="modal-actions" class="flex justify-end space-x-2">
+                <button id="modal-confirm-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">Confirm</button>
+                <button id="modal-cancel-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md text-center modal-content">
+            <h3 class="text-2xl font-bold mb-4 text-gray-800">Authentication Required</h3>
+            <p class="text-gray-600 mb-6">You are not authenticated. Please sign in to access the application.</p>
+            <p class="text-sm text-gray-500 mb-4">Signing in anonymously to initialize the app...</p>
+            <div id="auth-loader" class="flex justify-center items-center space-x-2">
+                <div class="h-4 w-4 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: -0.3s;"></div>
+                <div class="h-4 w-4 bg-indigo-500 rounded-full animate-bounce" style="animation-delay: -0.15s;"></div>
+                <div class="h-4 w-4 bg-indigo-500 rounded-full animate-bounce"></div>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        // ====================================================================================
-        // IMPORTANT: TO RUN LOCALLY, YOU MUST PROVIDE YOUR OWN FIREBASE CONFIGURATION HERE.
-        // Get this from your Firebase project settings.
-        // You also need to set up Firestore.
-        // ====================================================================================
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_AUTH_DOMAIN",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_STORAGE_BUCKET",
-            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-        const appId = firebaseConfig.appId || 'default-app-id';
+    <!-- Barcode Scanner Modal -->
+    <div id="barcode-scanner-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg modal-content">
+            <h3 class="text-xl font-bold mb-4">Scan Barcode</h3>
+            <div id="interactive-reader" class="w-full h-64 bg-gray-200 rounded-lg overflow-hidden"></div>
+            <p id="barcode-result" class="text-center text-sm text-gray-600 mt-2">Point your camera at a barcode.</p>
+            <div class="flex justify-end mt-4">
+                <button id="close-scanner-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
 
-        // Placeholder for user profile since auth is removed
-        const userProfile = {
-            uid: 'local-admin-user',
-            role: 'admin' // Force all features to be accessible
-        };
+    <!-- Receipt Modal -->
+    <div id="receipt-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center p-4 no-print">
+        <div id="receipt-modal-content" class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm modal-content">
+            <div id="receipt-header" class="text-center mb-4">
+                <img id="receipt-logo" src="" alt="Company Logo" class="h-16 mx-auto mb-2 object-contain" onerror="this.style.display='none'">
+                <h4 id="receipt-company-name" class="text-lg font-bold"></h4>
+            </div>
+            <h3 class="text-xl font-bold text-center mb-4 border-b pb-2">SALES RECEIPT</h3>
+            <div id="receipt-details" class="text-sm space-y-1 mb-4">
+                <p><strong>Date:</strong> <span id="receipt-date"></span></p>
+                <p><strong>Customer:</strong> <span id="receipt-customer"></span></p>
+                <p><strong>Payment Method:</strong> <span id="receipt-payment-method"></span></p>
+            </div>
+            <div class="overflow-x-auto mb-4">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b-2">
+                            <th class="text-left py-1">Item</th>
+                            <th class="text-right py-1">Qty</th>
+                            <th class="text-right py-1">Price</th>
+                            <th class="text-right py-1">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="receipt-items-table">
+                        <!-- Receipt items will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="text-right text-base font-semibold border-t-2 pt-2">
+                <p>Subtotal: <span id="receipt-subtotal"></span></p>
+                <p>Discount (<span id="receipt-discount-percent"></span>): <span id="receipt-discount-amount"></span></p>
+            </div>
+            <div class="text-right text-lg font-bold">
+                Total: <span id="receipt-total"></span>
+            </div>
+            <div class="text-center mt-4 text-gray-500 text-xs">
+                <p>Thank you for your business!</p>
+            </div>
+            <div class="mt-6 flex justify-end space-x-2 no-print">
+                <button id="print-receipt-btn" class="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-4 rounded-lg transition-colors">Print</button>
+                <button id="close-receipt-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-        // Firebase Imports and Initialization
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        setLogLevel('debug');
+<script type="module">
+    // Firebase CDN imports for a single-file application
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+    // Global variables from the hosting environment
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+    // Firestore Collection Names
+    const PRODUCTS_COLLECTION = 'products';
+    const CUSTOMERS_COLLECTION = 'customers';
+    const SALES_COLLECTION = 'sales';
+    const SETTINGS_COLLECTION = 'settings';
+    const SETTINGS_DOC_ID = 'company-profile';
+
+    // Application state
+    let app, db, auth, storage;
+    let userProfile = null;
+    let isAuthReady = false;
+    let store = {
+        products: [],
+        customers: [],
+        sales: [],
+        cart: [],
+        isImporting: false,
+        settings: {
+            companyName: 'Your Company',
+            logoUrl: 'https://placehold.co/60x60/888888/ffffff?text=Logo',
+            dataStorageLocation: 'private' // default value
+        },
+    };
+    
+    let unsubscribeProducts, unsubscribeCustomers, unsubscribeSales, unsubscribeSettings;
+
+    // DOM Elements
+    const elements = {
+        appContainer: document.getElementById('app-container'),
+        authModal: document.getElementById('auth-modal'),
+        genericModal: document.getElementById('generic-modal'),
+        modalTitle: document.getElementById('modal-title'),
+        modalMessage: document.getElementById('modal-message'),
+        modalActions: document.getElementById('modal-actions'),
+        modalConfirmBtn: document.getElementById('modal-confirm-btn'),
+        modalCancelBtn: document.getElementById('modal-cancel-btn'),
+        userDisplayName: document.getElementById('user-display-name'),
+        productGrid: document.getElementById('product-grid'),
+        productSearch: document.getElementById('product-search'),
+        customerSelect: document.getElementById('customer-select'),
+        cartList: document.getElementById('cart-list'),
+        emptyCartMessage: document.getElementById('empty-cart-message'),
+        cartSubtotalDisplay: document.getElementById('cart-subtotal-display'),
+        discountInput: document.getElementById('discount-input'),
+        cartTotalDisplay: document.getElementById('cart-total-display'),
+        paymentMethodSelect: document.getElementById('payment-method-select'),
+        processSaleBtn: document.getElementById('process-sale-btn'),
+        productForm: document.getElementById('product-form'),
+        productId: document.getElementById('product-id'),
+        productName: document.getElementById('product-name'),
+        productSupplier: document.getElementById('product-supplier'),
+        productPrice: document.getElementById('product-price'),
+        productBuyingPrice: document.getElementById('product-buying-price'),
+        productStock: document.getElementById('product-stock'),
+        productBarcode: document.getElementById('product-barcode'),
+        productPhotoUrl: document.getElementById('product-photo-url'),
+        productPhotoDropArea: document.getElementById('product-photo-drop-area'),
+        productPhotoUpload: document.getElementById('product-photo-upload'),
+        productPhotoPreview: document.getElementById('product-photo-preview'),
+        scanBarcodeBtn: document.getElementById('scan-barcode-btn'),
+        barcodeScannerModal: document.getElementById('barcode-scanner-modal'),
+        interactiveReader: document.getElementById('interactive-reader'),
+        barcodeResult: document.getElementById('barcode-result'),
+        closeScannerBtn: document.getElementById('close-scanner-btn'),
+        productTableBody: document.getElementById('product-table-body'),
+        customerForm: document.getElementById('customer-form'),
+        customerId: document.getElementById('customer-id'),
+        customerName: document.getElementById('customer-name'),
+        customerPhone: document.getElementById('customer-phone'),
+        customerCity: document.getElementById('customer-city'),
+        customerTownship: document.getElementById('customer-township'),
+        customerTableBody: document.getElementById('customer-table-body'),
+        salesHistoryTableBody: document.getElementById('sales-history-table-body'),
+        tabButtons: document.querySelectorAll('.tab-btn'),
+        tabContents: document.querySelectorAll('.tab-content'),
+        receiptModal: document.getElementById('receipt-modal'),
+        receiptModalContent: document.getElementById('receipt-modal-content'),
+        receiptLogo: document.getElementById('receipt-logo'),
+        receiptCompanyName: document.getElementById('receipt-company-name'),
+        receiptDate: document.getElementById('receipt-date'),
+        receiptCustomer: document.getElementById('receipt-customer'),
+        receiptPaymentMethod: document.getElementById('receipt-payment-method'),
+        receiptItemsTable: document.getElementById('receipt-items-table'),
+        receiptSubtotal: document.getElementById('receipt-subtotal'),
+        receiptDiscountPercent: document.getElementById('receipt-discount-percent'),
+        receiptDiscountAmount: document.getElementById('receipt-discount-amount'),
+        receiptTotal: document.getElementById('receipt-total'),
+        printReceiptBtn: document.getElementById('print-receipt-btn'),
+        closeReceiptBtn: document.getElementById('close-receipt-btn'),
+        settingsForm: document.getElementById('settings-form'),
+        companyNameInput: document.getElementById('company-name-input'),
+        companyLogoUrlInput: document.getElementById('company-logo-url-input'),
+        logoDropArea: document.getElementById('logo-drop-area'),
+        logoUploadInput: document.getElementById('logo-upload-input'),
+        logoPreview: document.getElementById('logo-preview'),
+        companyNamePreview: document.getElementById('company-name-preview'),
+        dataStorageSelect: document.getElementById('data-storage-select'),
+        salesLineChart: null,
+        salesBarChart: null,
+        salesPieChart: null,
+        // New elements for sales reports summary
+        todaySalesValue: document.getElementById('today-sales-value'),
+        todaySalesChange: document.getElementById('today-sales-change'),
+        totalSalesValue: document.getElementById('total-sales-value'),
+        totalTransactionsValue: document.getElementById('total-transactions-value'),
+        averageTransactionValue: document.getElementById('average-transaction-value'),
+        highestSalesDaysList: document.getElementById('highest-sales-days-list'),
+        monthlySalesChart: null
+    };
+
+    // --- Modal Functionality ---
+    const showModal = (title, message, showConfirm, confirmCallback, showCancel, cancelCallback) => {
+        elements.modalTitle.textContent = title;
+        elements.modalMessage.textContent = message;
+        elements.genericModal.classList.remove('hidden');
+        elements.modalConfirmBtn.classList.toggle('hidden', !showConfirm);
+        elements.modalCancelBtn.classList.toggle('hidden', !showCancel);
         
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // =================================
-        // Global State & Constants
-        // =================================
-        const PRODUCTS_COLLECTION = 'products';
-        const CUSTOMERS_COLLECTION = 'customers';
-        const SALES_COLLECTION = 'sales';
-
-        const store = {
-            products: [],
-            customers: [],
-            sales: [],
-            cart: [],
-            isImporting: false,
-            adminUsers: []
+        const handleConfirm = () => {
+            if (confirmCallback) confirmCallback();
+            hideModal();
         };
 
-        const elements = {
-            navTabs: document.getElementById('navTabs'),
-            contentArea: document.getElementById('contentArea'),
-            posSection: document.getElementById('posSection'),
-            inventorySection: document.getElementById('inventorySection'),
-            customersSection: document.getElementById('customersSection'),
-            reportsSection: document.getElementById('reportsSection'),
-            settingsSection: document.getElementById('settingsSection'),
-            productsGrid: document.getElementById('productsGrid'),
-            cartItems: document.getElementById('cartItems'),
-            customerSelect: document.getElementById('customerSelect'),
-            cartTotal: document.getElementById('cartTotal'),
-            processSaleBtn: document.getElementById('processSaleBtn'),
-            productSearch: document.getElementById('productSearch'),
-            cartCheckoutBtn: document.getElementById('cartCheckoutBtn'),
-            productTableContainer: document.getElementById('productTableContainer'),
-            customerTableContainer: document.getElementById('customerTableContainer'),
-            addProductBtn: document.getElementById('addProductBtn'),
-            addCustomerBtn: document.getElementById('addCustomerBtn'),
-            genericModal: document.getElementById('genericModal'),
-            modalTitle: document.getElementById('modalTitle'),
-            modalContent: document.getElementById('modalContent'),
-            closeModalBtn: document.getElementById('closeModalBtn'),
-            notificationModal: document.getElementById('notificationModal'),
-            notificationTitle: document.getElementById('notificationTitle'),
-            notificationMessage: document.getElementById('notificationMessage'),
-            notificationPrimaryBtn: document.getElementById('notificationPrimaryBtn'),
-            notificationSecondaryBtn: document.getElementById('notificationSecondaryBtn'),
-            totalSales: document.getElementById('totalSales'),
-            totalRevenue: document.getElementById('totalRevenue'),
-            totalProfit: document.getElementById('totalProfit'),
-            totalCost: document.getElementById('totalCost'),
-            salesHistoryTableContainer: document.getElementById('salesHistoryTableContainer'),
-            topSellingProductsTableBody: document.getElementById('topSellingProductsTableBody'),
-            importBtn: document.getElementById('importBtn'),
-            importModal: document.getElementById('importModal'),
-            closeImportModalBtn: document.getElementById('closeImportModalBtn'),
-            importType: document.getElementById('importType'),
-            importFile: document.getElementById('importFile'),
-            confirmImportBtn: document.getElementById('confirmImportBtn'),
-            exportAllDataBtn: document.getElementById('exportAllDataBtn'),
-            appContainer: document.getElementById('appContainer')
+        const handleCancel = () => {
+            if (cancelCallback) cancelCallback();
+            hideModal();
         };
 
-        // =================================
-        // Helper Functions
-        // =================================
+        elements.modalConfirmBtn.onclick = handleConfirm;
+        elements.modalCancelBtn.onclick = handleCancel;
+    };
 
-        const formatCurrency = (amount) => {
-            return new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD'
-            }).format(amount);
-        };
+    const hideModal = () => {
+        elements.genericModal.classList.add('hidden');
+        elements.modalConfirmBtn.onclick = null;
+        elements.modalCancelBtn.onclick = null;
+    };
 
-        const showModal = (title, content, showPrimaryBtn = true, primaryBtnText = 'Confirm', showSecondaryBtn = false, onPrimaryClick = null, onSecondaryClick = null) => {
-            elements.modalTitle.textContent = title;
-            elements.modalContent.innerHTML = content;
-            elements.genericModal.classList.remove('hidden');
-
-            const primaryBtn = document.getElementById('modalPrimaryBtn');
-            const secondaryBtn = document.getElementById('modalSecondaryBtn');
-
-            // Remove existing event listeners to prevent duplicates
-            const newPrimaryBtn = primaryBtn ? primaryBtn.cloneNode(true) : null;
-            const newSecondaryBtn = secondaryBtn ? secondaryBtn.cloneNode(true) : null;
-            if (newPrimaryBtn) {
-                primaryBtn.parentNode.replaceChild(newPrimaryBtn, primaryBtn);
-            }
-            if (newSecondaryBtn) {
-                secondaryBtn.parentNode.replaceChild(newSecondaryBtn, secondaryBtn);
-            }
-
-            if (showPrimaryBtn && newPrimaryBtn) {
-                newPrimaryBtn.textContent = primaryBtnText;
-                newPrimaryBtn.classList.remove('hidden');
-                newPrimaryBtn.onclick = onPrimaryClick;
-            } else if (newPrimaryBtn) {
-                newPrimaryBtn.classList.add('hidden');
-            }
-
-            if (showSecondaryBtn && newSecondaryBtn) {
-                newSecondaryBtn.onclick = onSecondaryClick;
-                newSecondaryBtn.classList.remove('hidden');
-            } else if (newSecondaryBtn) {
-                newSecondaryBtn.classList.add('hidden');
-            }
-        };
-
-        const hideModal = () => {
-            elements.genericModal.classList.add('hidden');
-            elements.modalContent.innerHTML = '';
-        };
-
-        const showNotification = (title, message, showSecondaryBtn = false, onPrimaryClick = null, onSecondaryClick = null) => {
-            elements.notificationTitle.textContent = title;
-            elements.notificationMessage.textContent = message;
-            elements.notificationModal.classList.remove('hidden');
-
-            elements.notificationPrimaryBtn.onclick = onPrimaryClick || (() => hideNotification());
-            if (showSecondaryBtn) {
-                elements.notificationSecondaryBtn.classList.remove('hidden');
-                elements.notificationSecondaryBtn.onclick = onSecondaryClick || (() => hideNotification());
-            } else {
-                elements.notificationSecondaryBtn.classList.add('hidden');
-            }
-        };
-
-        const hideNotification = () => {
-            elements.notificationModal.classList.add('hidden');
-        };
-
-        const calculateReports = () => {
-            let totalSales = 0;
-            let totalRevenue = 0;
-            let totalProfit = 0;
-
-            const topSellingProducts = {};
-
-            store.sales.forEach(sale => {
-                totalSales += 1;
-                totalRevenue += sale.totalPrice;
-                sale.products.forEach(product => {
-                    const cost = product.cost || 0;
-                    totalProfit += (product.price - cost) * product.quantity;
-                    if (topSellingProducts[product.name]) {
-                        topSellingProducts[product.name].quantity += product.quantity;
-                        topSellingProducts[product.name].revenue += product.price * product.quantity;
-                    } else {
-                        topSellingProducts[product.name] = {
-                            quantity: product.quantity,
-                            revenue: product.price * product.quantity
-                        };
-                    }
-                });
-            });
-
-            elements.totalSales.textContent = totalSales;
-            elements.totalRevenue.textContent = formatCurrency(totalRevenue);
-            elements.totalProfit.textContent = formatCurrency(totalProfit);
-            elements.totalCost.textContent = formatCurrency(totalRevenue - totalProfit);
-
-            renderTopSellingProducts(topSellingProducts);
-        };
-
-        const renderTopSellingProducts = (products) => {
-            const sortedProducts = Object.entries(products).sort(([, a], [, b]) => b.quantity - a.quantity);
-            const html = sortedProducts.slice(0, 10).map(([name, data]) => `
-                <tr class="bg-white border-b hover:bg-gray-50 transition-colors duration-200">
-                    <td class="py-3 px-6">${name}</td>
-                    <td class="py-3 px-6">${data.quantity}</td>
-                    <td class="py-3 px-6">${formatCurrency(data.revenue)}</td>
-                </tr>
-            `).join('');
-            elements.topSellingProductsTableBody.innerHTML = html;
-        };
-
-        // =================================
-        // Render Functions
-        // =================================
-        const renderProducts = (searchTerm = '') => {
-            const filteredProducts = store.products.filter(product =>
-                product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                product.barcodeId.toLowerCase().includes(searchTerm.toLowerCase())
+    // --- Core UI Rendering Functions ---
+    const renderProducts = (filter = '') => {
+        elements.productGrid.innerHTML = '';
+        let filteredProducts = store.products;
+        if (filter) {
+             filteredProducts = store.products.filter(p =>
+                p.name.toLowerCase().includes(filter.toLowerCase()) || (p.barcode && p.barcode.includes(filter))
             );
+        }
 
-            const html = filteredProducts.map(product => `
-                <div class="product-card bg-white rounded-xl shadow-md p-4 flex flex-col items-center text-center cursor-pointer transition-transform duration-200" data-id="${product.id}" data-name="${product.name}" data-price="${product.price}" data-cost="${product.cost || 0}">
-                    <img src="${product.imageUrl || 'https://placehold.co/100x100'}" alt="${product.name}" class="w-24 h-24 object-cover rounded-lg mb-2">
-                    <p class="font-semibold text-gray-800">${product.name}</p>
-                    <p class="text-sm text-gray-500">${product.sku}</p>
-                    <p class="text-xs text-gray-400">Barcode: ${product.barcodeId}</p>
-                    <p class="font-bold text-lg text-indigo-600">${formatCurrency(product.price)}</p>
-                    <p class="text-xs text-red-500">Stock: ${product.stock}</p>
-                </div>
-            `).join('');
-            elements.productsGrid.innerHTML = html;
-        };
+        if (filteredProducts.length === 0) {
+            elements.productGrid.innerHTML = '<p class="text-center text-gray-500 col-span-full">No products found.</p>';
+            return;
+        }
 
-        const renderCart = () => {
-            const html = store.cart.map(item => `
-                <div class="flex items-center space-x-4 p-2 bg-white rounded-lg shadow-sm mb-2">
-                    <img src="${item.imageUrl || 'https://placehold.co/50x50'}" alt="${item.name}" class="w-10 h-10 object-cover rounded">
-                    <div class="flex-grow">
-                        <p class="font-semibold text-gray-800">${item.name}</p>
-                        <p class="text-sm text-gray-500">${formatCurrency(item.price)} x ${item.quantity}</p>
-                    </div>
-                    <p class="font-bold text-gray-700">${formatCurrency(item.price * item.quantity)}</p>
-                    <button class="remove-from-cart-btn text-red-500 hover:text-red-700 transition-colors duration-200" data-id="${item.id}">&times;</button>
-                </div>
-            `).join('');
-            elements.cartItems.innerHTML = html;
-            const total = store.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            elements.cartTotal.textContent = formatCurrency(total);
-        };
-
-        const renderProductTable = () => {
-            const html = `
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                        <tr>
-                            <th scope="col" class="py-3 px-6 rounded-tl-lg">SKU</th>
-                            <th scope="col" class="py-3 px-6">Barcode</th>
-                            <th scope="col" class="py-3 px-6">Product Name</th>
-                            <th scope="col" class="py-3 px-6">Price</th>
-                            <th scope="col" class="py-3 px-6">Cost</th>
-                            <th scope="col" class="py-3 px-6">Stock</th>
-                            <th scope="col" class="py-3 px-6 rounded-tr-lg">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${store.products.map(product => `
-                            <tr class="bg-white border-b hover:bg-gray-50 transition-colors duration-200">
-                                <td class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap">${product.sku}</td>
-                                <td class="py-4 px-6">${product.barcodeId || 'N/A'}</td>
-                                <td class="py-4 px-6">${product.name}</td>
-                                <td class="py-4 px-6">${formatCurrency(product.price)}</td>
-                                <td class="py-4 px-6">${formatCurrency(product.cost || 0)}</td>
-                                <td class="py-4 px-6">${product.stock}</td>
-                                <td class="py-4 px-6">
-                                    <button data-id="${product.id}" class="edit-product-btn text-indigo-600 hover:text-indigo-900 transition-colors duration-200">Edit</button> |
-                                    <button data-id="${product.id}" class="delete-product-btn text-red-600 hover:text-red-900 transition-colors duration-200">Delete</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+        filteredProducts.forEach(product => {
+            const productCard = document.createElement('div');
+            productCard.className = `product-card bg-gray-100 p-4 rounded-xl shadow-md cursor-pointer transition-transform duration-200 ${product.stock <= 0 ? 'opacity-50 grayscale cursor-not-allowed' : ''}`;
+            productCard.innerHTML = `
+                <img src="${product.photoUrl || 'https://placehold.co/100x100/e5e7eb/4b5563?text=No+Photo'}" alt="${product.name}" class="w-full h-24 object-contain mb-2 rounded-lg">
+                <h3 class="font-semibold text-lg truncate">${product.name}</h3>
+                <p class="text-gray-600">Price: ${product.price} MMK</p>
+                <p class="text-sm text-gray-500">Stock: ${product.stock}</p>
             `;
-            elements.productTableContainer.innerHTML = html;
-        };
+            if (product.stock > 0) {
+                productCard.addEventListener('click', () => addToCart(product));
+            }
+            elements.productGrid.appendChild(productCard);
+        });
+    };
 
-        const renderCustomerTable = () => {
-            const html = `
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                        <tr>
-                            <th scope="col" class="py-3 px-6 rounded-tl-lg">Customer Name</th>
-                            <th scope="col" class="py-3 px-6">Email</th>
-                            <th scope="col" class="py-3 px-6">Phone</th>
-                            <th scope="col" class="py-3 px-6 rounded-tr-lg">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${store.customers.map(customer => `
-                            <tr class="bg-white border-b hover:bg-gray-50 transition-colors duration-200">
-                                <td class="py-4 px-6 font-medium text-gray-900 whitespace-nowrap">${customer.name}</td>
-                                <td class="py-4 px-6">${customer.email || 'N/A'}</td>
-                                <td class="py-4 px-6">${customer.phone || 'N/A'}</td>
-                                <td class="py-4 px-6">
-                                    <button data-id="${customer.id}" class="edit-customer-btn text-indigo-600 hover:text-indigo-900 transition-colors duration-200">Edit</button> |
-                                    <button data-id="${customer.id}" class="delete-customer-btn text-red-600 hover:text-red-900 transition-colors duration-200">Delete</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            elements.customerTableContainer.innerHTML = html;
-        };
+    const renderCustomerSelect = () => {
+        elements.customerSelect.innerHTML = '<option value="">Walk-in Customer</option>';
+        store.customers.forEach(customer => {
+            const option = document.createElement('option');
+            option.value = customer.id;
+            option.textContent = customer.name;
+            elements.customerSelect.appendChild(option);
+        });
+    };
 
-        const renderCustomerSelect = () => {
-            const html = `
-                <option value="">Select Customer (Optional)</option>
-                ${store.customers.map(customer => `
-                    <option value="${customer.id}">${customer.name}</option>
-                `).join('')}
-            `;
-            elements.customerSelect.innerHTML = html;
-        };
-
-        const renderSalesHistoryTable = () => {
-            const html = `
-                <table class="w-full text-sm text-left text-gray-500">
-                    <thead class="text-xs text-gray-700 uppercase bg-gray-100">
-                        <tr>
-                            <th scope="col" class="py-3 px-6 rounded-tl-lg">Sale ID</th>
-                            <th scope="col" class="py-3 px-6">Customer</th>
-                            <th scope="col" class="py-3 px-6">Date</th>
-                            <th scope="col" class="py-3 px-6 rounded-tr-lg">Total</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${store.sales.map(sale => `
-                            <tr class="bg-white border-b hover:bg-gray-50 transition-colors duration-200">
-                                <td class="py-4 px-6">${sale.id.substring(0, 8)}...</td>
-                                <td class="py-4 px-6">${sale.customerName || 'Walk-in Customer'}</td>
-                                <td class="py-4 px-6">${new Date(sale.timestamp.seconds * 1000).toLocaleDateString()}</td>
-                                <td class="py-4 px-6">${formatCurrency(sale.totalPrice)}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            elements.salesHistoryTableContainer.innerHTML = html;
-        };
-
-        // =================================
-        // Modal Handlers
-        // =================================
-        const handleAddEditProduct = (isEdit = false, productId = null) => {
-            const product = isEdit ? store.products.find(p => p.id === productId) : {};
-            const title = isEdit ? `Edit Product: ${product.name}` : 'Add New Product';
-            const content = `
-                <form id="productForm" class="space-y-4">
-                    <div>
-                        <label for="product-name" class="block text-sm font-medium text-gray-700">Name</label>
-                        <input type="text" id="product-name" name="name" value="${product.name || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
+    const renderCart = () => {
+        elements.cartList.innerHTML = '';
+        if (store.cart.length === 0) {
+            elements.emptyCartMessage.classList.remove('hidden');
+        } else {
+            elements.emptyCartMessage.classList.add('hidden');
+            store.cart.forEach(item => {
+                const cartItem = document.createElement('div');
+                cartItem.className = 'bg-gray-100 p-3 rounded-lg flex items-center justify-between shadow-sm';
+                cartItem.innerHTML = `
+                    <div class="flex-1 truncate">
+                        <span class="font-medium">${item.name}</span>
+                        <span class="text-sm text-gray-600">(${item.price} MMK x ${item.quantity})</span>
                     </div>
-                    <div>
-                        <label for="product-sku" class="block text-sm font-medium text-gray-700">SKU</label>
-                        <input type="text" id="product-sku" name="sku" value="${product.sku || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
-                    </div>
-                    <div>
-                        <label for="product-barcode" class="block text-sm font-medium text-gray-700">Barcode ID</label>
-                        <input type="text" id="product-barcode" name="barcodeId" value="${product.barcodeId || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label for="product-price" class="block text-sm font-medium text-gray-700">Price</label>
-                        <input type="number" id="product-price" name="price" value="${product.price || ''}" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
-                    </div>
-                    <div>
-                        <label for="product-cost" class="block text-sm font-medium text-gray-700">Cost (for profit calculation)</label>
-                        <input type="number" id="product-cost" name="cost" value="${product.cost || ''}" step="0.01" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label for="product-stock" class="block text-sm font-medium text-gray-700">Stock</label>
-                        <input type="number" id="product-stock" name="stock" value="${product.stock || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
-                    </div>
-                    <div class="flex justify-end">
-                        <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-full hover:bg-indigo-700 transition-colors duration-200">
-                            ${isEdit ? 'Update Product' : 'Add Product'}
+                    <div class="flex items-center space-x-2">
+                        <span class="font-semibold">${(item.quantity * item.price).toFixed(2)} MMK</span>
+                        <button class="remove-from-cart text-red-500 hover:text-red-700 transition-colors" data-product-id="${item.id}">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 112 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
                         </button>
                     </div>
-                </form>
+                `;
+                elements.cartList.appendChild(cartItem);
+            });
+        }
+        updateCartTotals();
+    };
+
+    const updateCartTotals = () => {
+        const subtotal = store.cart.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+        const discountPercentage = parseFloat(elements.discountInput.value) || 0;
+        const discountAmount = subtotal * (discountPercentage / 100);
+        const total = subtotal - discountAmount;
+        
+        elements.cartSubtotalDisplay.textContent = `${subtotal.toFixed(2)} MMK`;
+        elements.cartTotalDisplay.textContent = `${total.toFixed(2)} MMK`;
+    };
+
+    const renderProductTable = () => {
+        elements.productTableBody.innerHTML = '';
+        store.products.forEach(product => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="py-3 px-6 whitespace-nowrap"><img src="${product.photoUrl || 'https://placehold.co/40x40/e5e7eb/4b5563?text=No+Photo'}" alt="${product.name}" class="w-10 h-10 object-contain rounded-full"></td>
+                <td class="py-3 px-6 whitespace-nowrap">${product.name}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${product.supplier || 'N/A'}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${product.barcode || 'N/A'}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${product.price.toFixed(2)}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${product.buyingPrice.toFixed(2)}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${product.stock}</td>
+                <td class="py-3 px-6 whitespace-nowrap">
+                    <button class="edit-btn text-blue-500 hover:text-blue-700 font-medium mr-2" data-id="${product.id}">Edit</button>
+                    <button class="delete-btn text-red-500 hover:text-red-700 font-medium" data-id="${product.id}">Delete</button>
+                </td>
             `;
+            elements.productTableBody.appendChild(row);
+        });
+    };
 
-            showModal(title, content);
+    const renderCustomerTable = () => {
+        elements.customerTableBody.innerHTML = '';
+        store.customers.forEach(customer => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            row.innerHTML = `
+                <td class="py-3 px-6 whitespace-nowrap">${customer.name}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${customer.phone || 'N/A'}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${customer.city || 'N/A'}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${customer.township || 'N/A'}</td>
+                <td class="py-3 px-6 whitespace-nowrap">
+                    <button class="edit-btn text-blue-500 hover:text-blue-700 font-medium mr-2" data-id="${customer.id}">Edit</button>
+                    <button class="delete-btn text-red-500 hover:text-red-700 font-medium" data-id="${customer.id}">Delete</button>
+                </td>
+            `;
+            elements.customerTableBody.appendChild(row);
+        });
+    };
 
-            document.getElementById('productForm').onsubmit = async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const data = Object.fromEntries(formData.entries());
-                data.price = parseFloat(data.price);
-                data.cost = parseFloat(data.cost) || 0;
-                data.stock = parseInt(data.stock, 10);
+    const renderSalesHistoryTable = () => {
+        elements.salesHistoryTableBody.innerHTML = '';
+        store.sales.sort((a, b) => b.timestamp.toDate() - a.timestamp.toDate());
+        store.sales.forEach(sale => {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            const date = sale.timestamp.toDate().toLocaleDateString();
+            const time = sale.timestamp.toDate().toLocaleTimeString();
+            row.innerHTML = `
+                <td class="py-3 px-6 whitespace-nowrap">${date} ${time}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${sale.customerName}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${sale.total.toFixed(2)} MMK</td>
+                <td class="py-3 px-6 whitespace-nowrap">${sale.discount}%</td>
+                <td class="py-3 px-6 whitespace-nowrap">${sale.paymentMethod}</td>
+                <td class="py-3 px-6 whitespace-nowrap">${sale.items.map(item => `${item.name} x${item.quantity}`).join(', ')}</td>
+            `;
+            elements.salesHistoryTableBody.appendChild(row);
+        });
+    };
 
-                try {
-                    if (isEdit) {
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', PRODUCTS_COLLECTION, productId), data);
-                        showNotification('Success!', 'Product updated successfully.');
-                    } else {
-                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', PRODUCTS_COLLECTION), data);
-                        showNotification('Success!', 'New product added successfully.');
-                    }
-                    hideModal();
-                } catch (error) {
-                    console.error("Error writing document: ", error);
-                    showNotification('Error', 'Failed to save product. Please try again.');
-                }
-            };
+    // --- Data Handling & Persistence ---
+    const getFirestorePath = (collectionName) => {
+        const userId = auth.currentUser?.uid || 'anonymous';
+        const isPublic = store.settings.dataStorageLocation === 'public';
+        if (isPublic) {
+            return collection(db, 'artifacts', appId, 'public', 'data', collectionName);
+        } else {
+            return collection(db, 'artifacts', appId, 'users', userId, collectionName);
+        }
+    };
+
+    const addToCart = (product) => {
+        const existingItem = store.cart.find(item => item.id === product.id);
+        if (existingItem) {
+            existingItem.quantity++;
+        } else {
+            store.cart.push({
+                id: product.id,
+                name: product.name,
+                price: product.price,
+                quantity: 1,
+            });
+        }
+        renderCart();
+    };
+
+    const removeFromCart = (productId) => {
+        const itemIndex = store.cart.findIndex(item => item.id === productId);
+        if (itemIndex > -1) {
+            store.cart.splice(itemIndex, 1);
+            renderCart();
+        }
+    };
+
+    const handleProcessSale = async () => {
+        if (store.cart.length === 0) {
+            showModal('Cart is Empty', 'Please add products to the cart before processing a sale.', false, null, true, hideModal);
+            return;
+        }
+
+        const subtotal = store.cart.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+        const discountPercentage = parseFloat(elements.discountInput.value) || 0;
+        const discountAmount = subtotal * (discountPercentage / 100);
+        const total = subtotal - discountAmount;
+
+        const saleData = {
+            timestamp: new Date(),
+            customerId: elements.customerSelect.value || null,
+            customerName: elements.customerSelect.options[elements.customerSelect.selectedIndex].text,
+            items: store.cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price
+            })),
+            subtotal: subtotal,
+            discount: discountPercentage,
+            total: total,
+            paymentMethod: elements.paymentMethodSelect.value,
         };
 
-        const handleAddEditCustomer = (isEdit = false, customerId = null) => {
-            const customer = isEdit ? store.customers.find(c => c.id === customerId) : {};
-            const title = isEdit ? `Edit Customer: ${customer.name}` : 'Add New Customer';
-            const content = `
-                <form id="customerForm" class="space-y-4">
-                    <div>
-                        <label for="customer-name" class="block text-sm font-medium text-gray-700">Name</label>
-                        <input type="text" id="customer-name" name="name" value="${customer.name || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm" required>
-                    </div>
-                    <div>
-                        <label for="customer-email" class="block text-sm font-medium text-gray-700">Email</label>
-                        <input type="email" id="customer-email" name="email" value="${customer.email || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div>
-                        <label for="customer-phone" class="block text-sm font-medium text-gray-700">Phone</label>
-                        <input type="tel" id="customer-phone" name="phone" value="${customer.phone || ''}" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm">
-                    </div>
-                    <div class="flex justify-end">
-                        <button type="submit" class="bg-indigo-600 text-white px-6 py-2 rounded-full hover:bg-indigo-700 transition-colors duration-200">
-                            ${isEdit ? 'Update Customer' : 'Add Customer'}
-                        </button>
-                    </div>
-                </form>
+        // Update product stock in Firestore
+        const batch = db.batch();
+        for (const item of store.cart) {
+            const productRef = doc(getFirestorePath(PRODUCTS_COLLECTION), item.id);
+            const product = store.products.find(p => p.id === item.id);
+            if (product) {
+                batch.update(productRef, { stock: product.stock - item.quantity });
+            }
+        }
+        await batch.commit();
+
+        // Add sale to Firestore
+        await addDoc(getFirestorePath(SALES_COLLECTION), saleData);
+
+        // Render the receipt and show the modal
+        renderReceipt(saleData);
+
+        // Clear the cart after a successful sale
+        store.cart = [];
+        elements.discountInput.value = 0;
+        renderCart();
+    };
+    
+    // --- Receipt Functions ---
+    const renderReceipt = (sale) => {
+        elements.receiptLogo.src = store.settings.logoUrl;
+        elements.receiptCompanyName.textContent = store.settings.companyName;
+        elements.receiptDate.textContent = new Date(sale.timestamp.seconds * 1000).toLocaleString();
+        elements.receiptCustomer.textContent = sale.customerName;
+        elements.receiptPaymentMethod.textContent = sale.paymentMethod;
+        
+        elements.receiptItemsTable.innerHTML = '';
+        sale.items.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="text-left py-1">${item.name}</td>
+                <td class="text-right py-1">${item.quantity}</td>
+                <td class="text-right py-1">${item.price.toFixed(2)}</td>
+                <td class="text-right py-1">${(item.quantity * item.price).toFixed(2)}</td>
             `;
-            showModal(title, content);
+            elements.receiptItemsTable.appendChild(row);
+        });
+        
+        elements.receiptSubtotal.textContent = `${sale.subtotal.toFixed(2)} MMK`;
+        elements.receiptDiscountPercent.textContent = `${sale.discount}%`;
+        const discountAmount = sale.subtotal * (sale.discount / 100);
+        elements.receiptDiscountAmount.textContent = `${discountAmount.toFixed(2)} MMK`;
+        elements.receiptTotal.textContent = `${sale.total.toFixed(2)} MMK`;
 
-            document.getElementById('customerForm').onsubmit = async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                const data = Object.fromEntries(formData.entries());
+        elements.receiptModal.classList.remove('hidden');
+    };
 
-                try {
-                    if (isEdit) {
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', CUSTOMERS_COLLECTION, customerId), data);
-                        showNotification('Success!', 'Customer updated successfully.');
-                    } else {
-                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', CUSTOMERS_COLLECTION), data);
-                        showNotification('Success!', 'New customer added successfully.');
-                    }
-                    hideModal();
-                } catch (error) {
-                    console.error("Error writing document: ", error);
-                    showNotification('Error', 'Failed to save customer. Please try again.');
+    const handlePrintReceipt = () => {
+        window.print();
+    };
+
+    // --- Charting Functions ---
+    const renderSalesCharts = () => {
+        if (!store.sales.length) {
+            if (elements.salesLineChart) elements.salesLineChart.destroy();
+            if (elements.salesBarChart) elements.salesBarChart.destroy();
+            if (elements.salesPieChart) elements.salesPieChart.destroy();
+            if (elements.monthlySalesChart) elements.monthlySalesChart.destroy();
+            return;
+        }
+        renderSalesLineChart();
+        renderSalesBarChart();
+        renderSalesPieChart();
+        renderMonthlySalesChart();
+    };
+
+    const renderSalesLineChart = () => {
+        if (elements.salesLineChart) elements.salesLineChart.destroy();
+
+        // Aggregate sales by date
+        const salesByDate = {};
+        store.sales.forEach(sale => {
+            const date = new Date(sale.timestamp.toDate()).toISOString().split('T')[0];
+            salesByDate[date] = (salesByDate[date] || 0) + sale.total;
+        });
+
+        const labels = Object.keys(salesByDate).sort();
+        const data = labels.map(date => salesByDate[date]);
+
+        const ctx = document.getElementById('sales-line-chart').getContext('2d');
+        elements.salesLineChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Sales (MMK)',
+                    data: data,
+                    borderColor: 'rgb(79, 70, 229)',
+                    backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                    tension: 0.4,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
                 }
-            };
-        };
-
-        // =================================
-        // Event Listeners
-        // =================================
-
-        elements.navTabs.addEventListener('click', (e) => {
-            const target = e.target.closest('button');
-            if (target) {
-                document.querySelectorAll('.tab-content').forEach(section => section.classList.add('hidden'));
-                document.querySelectorAll('#navTabs button').forEach(btn => btn.classList.remove('active-tab', 'bg-indigo-600', 'text-white'));
-
-                document.getElementById(`${target.dataset.tab}Section`).classList.remove('hidden');
-                target.classList.add('active-tab', 'bg-indigo-600', 'text-white');
             }
         });
+    };
 
-        document.getElementById('posSection').classList.remove('hidden');
-        document.querySelector('[data-tab="pos"]').classList.add('active-tab', 'bg-indigo-600', 'text-white');
+    const renderSalesBarChart = () => {
+        if (elements.salesBarChart) elements.salesBarChart.destroy();
 
-        elements.productsGrid.addEventListener('click', (e) => {
-            const card = e.target.closest('.product-card');
-            if (card) {
-                const id = card.dataset.id;
-                const existingItem = store.cart.find(item => item.id === id);
-                if (existingItem) {
-                    existingItem.quantity += 1;
-                } else {
-                    const product = store.products.find(p => p.id === id);
-                    store.cart.push({ ...product, quantity: 1 });
+        // Aggregate sales by product category (or just product name for simplicity)
+        const salesByCategory = {};
+        store.sales.forEach(sale => {
+            sale.items.forEach(item => {
+                salesByCategory[item.name] = (salesByCategory[item.name] || 0) + (item.quantity * item.price);
+            });
+        });
+
+        const labels = Object.keys(salesByCategory);
+        const data = labels.map(label => salesByCategory[label]);
+
+        const ctx = document.getElementById('sales-bar-chart').getContext('2d');
+        elements.salesBarChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Sales (MMK)',
+                    data: data,
+                    backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
                 }
-                renderCart();
+            }
+        });
+    };
+
+    const renderSalesPieChart = () => {
+        if (elements.salesPieChart) elements.salesPieChart.destroy();
+
+        // Aggregate sales by customer
+        const salesByCustomer = {};
+        store.sales.forEach(sale => {
+            const customerName = sale.customerName === "Walk-in Customer" ? "Walk-in" : sale.customerName;
+            salesByCustomer[customerName] = (salesByCustomer[customerName] || 0) + sale.total;
+        });
+
+        const labels = Object.keys(salesByCustomer);
+        const data = labels.map(label => salesByCustomer[label]);
+        const colors = labels.map(() => `hsl(${Math.random() * 360}, 70%, 50%)`);
+
+        const ctx = document.getElementById('sales-pie-chart').getContext('2d');
+        elements.salesPieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Sales by Customer',
+                    data: data,
+                    backgroundColor: colors,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+    };
+
+    const renderMonthlySalesChart = () => {
+        if (elements.monthlySalesChart) elements.monthlySalesChart.destroy();
+
+        const monthlySales = {};
+        store.sales.forEach(sale => {
+            const date = new Date(sale.timestamp.toDate());
+            const monthYear = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            monthlySales[monthYear] = (monthlySales[monthYear] || 0) + sale.total;
+        });
+
+        const sortedMonths = Object.keys(monthlySales).sort();
+        const labels = sortedMonths.map(month => {
+            const [year, monthNum] = month.split('-');
+            const date = new Date(year, monthNum - 1);
+            return date.toLocaleString('default', { month: 'short', year: 'numeric' });
+        });
+        const data = sortedMonths.map(month => monthlySales[month]);
+
+        const ctx = document.getElementById('monthly-sales-chart').getContext('2d');
+        elements.monthlySalesChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Monthly Sales (MMK)',
+                    data: data,
+                    backgroundColor: 'rgb(54, 162, 235)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    };
+
+    const calculateAndRenderSalesSummary = () => {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        const todaySales = store.sales.filter(sale => {
+            const saleDate = sale.timestamp.toDate();
+            return saleDate.getDate() === today.getDate() &&
+                   saleDate.getMonth() === today.getMonth() &&
+                   saleDate.getFullYear() === today.getFullYear();
+        }).reduce((sum, sale) => sum + sale.total, 0);
+
+        const yesterdaySales = store.sales.filter(sale => {
+            const saleDate = sale.timestamp.toDate();
+            return saleDate.getDate() === yesterday.getDate() &&
+                   saleDate.getMonth() === yesterday.getMonth() &&
+                   saleDate.getFullYear() === yesterday.getFullYear();
+        }).reduce((sum, sale) => sum + sale.total, 0);
+
+        let totalSales = store.sales.reduce((sum, sale) => sum + sale.total, 0);
+        let totalTransactions = store.sales.length;
+        let averageTransaction = totalTransactions > 0 ? totalSales / totalTransactions : 0;
+
+        elements.todaySalesValue.textContent = `${todaySales.toFixed(2)} MMK`;
+        let changePercent = (yesterdaySales > 0) ? ((todaySales - yesterdaySales) / yesterdaySales) * 100 : (todaySales > 0 ? 100 : 0);
+        elements.todaySalesChange.textContent = `${changePercent.toFixed(1)}%`;
+        elements.todaySalesChange.classList.toggle('bg-red-500', changePercent < 0);
+        elements.todaySalesChange.classList.toggle('bg-green-500', changePercent >= 0);
+
+        elements.totalSalesValue.textContent = `${totalSales.toFixed(2)} MMK`;
+        elements.totalTransactionsValue.textContent = totalTransactions.toString();
+        elements.averageTransactionValue.textContent = `${averageTransaction.toFixed(2)} MMK`;
+
+        // Calculate highest sales days
+        const salesByDay = {};
+        store.sales.forEach(sale => {
+            const date = new Date(sale.timestamp.toDate()).toDateString();
+            salesByDay[date] = (salesByDay[date] || 0) + sale.total;
+        });
+        const sortedSalesDays = Object.entries(salesByDay).sort(([, a], [, b]) => b - a);
+        elements.highestSalesDaysList.innerHTML = '';
+        if (sortedSalesDays.length === 0) {
+            elements.highestSalesDaysList.innerHTML = '<li class="text-gray-600">No data available.</li>';
+        } else {
+            sortedSalesDays.slice(0, 3).forEach(([date, total]) => {
+                const li = document.createElement('li');
+                li.className = 'text-gray-600';
+                li.textContent = `${date}: ${total.toFixed(2)} MMK`;
+                elements.highestSalesDaysList.appendChild(li);
+            });
+        }
+    };
+
+    // --- Tab Switching ---
+    elements.tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            elements.tabButtons.forEach(btn => btn.classList.remove('active-tab', 'text-white'));
+            button.classList.add('active-tab', 'text-white');
+            elements.tabContents.forEach(content => content.classList.add('hidden'));
+            const tabId = button.getAttribute('data-tab');
+            document.getElementById(tabId + '-tab').classList.remove('hidden');
+        });
+    });
+
+    // --- Barcode Scanner Logic ---
+    let barcodeScannerRunning = false;
+    const startBarcodeScanner = () => {
+        if (barcodeScannerRunning) return;
+        elements.barcodeScannerModal.classList.remove('hidden');
+        barcodeScannerRunning = true;
+        
+        Quagga.init({
+            inputStream : {
+              name : "Live",
+              type : "LiveStream",
+              target: elements.interactiveReader,
+              constraints: {
+                  width: 640,
+                  height: 480,
+                  facingMode: "environment" // use rear camera
+              },
+            },
+            decoder : {
+              readers : ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"]
+            }
+        }, function(err) {
+            if (err) {
+                console.error(err);
+                elements.barcodeResult.textContent = "Error: " + err.message;
+                return;
+            }
+            Quagga.start();
+        });
+
+        Quagga.onDetected(data => {
+            const code = data.codeResult.code;
+            if (code) {
+                elements.productBarcode.value = code;
+                elements.barcodeResult.textContent = `Scanned: ${code}`;
+                stopBarcodeScanner();
             }
         });
 
-        elements.cartItems.addEventListener('click', (e) => {
-            const btn = e.target.closest('.remove-from-cart-btn');
-            if (btn) {
-                const id = btn.dataset.id;
-                store.cart = store.cart.filter(item => item.id !== id);
-                renderCart();
-            }
-        });
+        elements.closeScannerBtn.addEventListener('click', stopBarcodeScanner, { once: true });
+    };
 
+    const stopBarcodeScanner = () => {
+        if (!barcodeScannerRunning) return;
+        Quagga.stop();
+        elements.barcodeScannerModal.classList.add('hidden');
+        barcodeScannerRunning = false;
+    };
+
+    // --- Main Logic & Event Handlers ---
+    const setupEventListeners = () => {
+        // POS search
         elements.productSearch.addEventListener('input', (e) => {
             renderProducts(e.target.value);
         });
+        
+        // Discount input change
+        elements.discountInput.addEventListener('input', updateCartTotals);
 
-        elements.cartCheckoutBtn.addEventListener('click', () => {
-            elements.posSection.classList.add('hidden');
-            document.querySelectorAll('#navTabs button').forEach(btn => btn.classList.remove('active-tab', 'bg-indigo-600', 'text-white'));
-            elements.inventorySection.classList.remove('hidden');
-            document.querySelector('[data-tab="inventory"]').classList.add('active-tab', 'bg-indigo-600', 'text-white');
-        });
-
-        elements.processSaleBtn.addEventListener('click', async () => {
-            if (store.cart.length === 0) {
-                showNotification('Empty Cart', 'Please add products to the cart before processing a sale.');
-                return;
-            }
-
-            try {
-                const saleTotal = store.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                const customerId = elements.customerSelect.value;
-                const customerName = customerId ? store.customers.find(c => c.id === customerId)?.name : 'Walk-in Customer';
-                const saleData = {
-                    products: store.cart.map(({ id, name, price, quantity, cost }) => ({ id, name, price, quantity, cost })),
-                    totalPrice: saleTotal,
-                    customerId,
-                    customerName,
-                    timestamp: new Date()
-                };
-
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', SALES_COLLECTION), saleData);
-
-                for (const item of store.cart) {
-                    const productRef = doc(db, 'artifacts', appId, 'public', 'data', PRODUCTS_COLLECTION, item.id);
-                    await updateDoc(productRef, {
-                        stock: store.products.find(p => p.id === item.id).stock - item.quantity
-                    });
-                }
-
-                store.cart = [];
-                renderCart();
-                showNotification('Sale Processed', 'The sale has been successfully completed.');
-            } catch (error) {
-                console.error("Error processing sale: ", error);
-                showNotification('Error', 'Failed to process sale. Please try again.');
-            }
-        });
-
-        elements.addProductBtn.addEventListener('click', () => handleAddEditProduct(false));
-        elements.addCustomerBtn.addEventListener('click', () => handleAddEditCustomer(false));
-
-        elements.productTableContainer.addEventListener('click', (e) => {
-            const editBtn = e.target.closest('.edit-product-btn');
-            const deleteBtn = e.target.closest('.delete-product-btn');
-            if (editBtn) {
-                handleAddEditProduct(true, editBtn.dataset.id);
-            } else if (deleteBtn) {
-                showNotification('Confirm Delete', 'Are you sure you want to delete this product?', true,
-                    async () => {
-                        try {
-                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', PRODUCTS_COLLECTION, deleteBtn.dataset.id));
-                            hideNotification();
-                            showNotification('Success!', 'Product deleted successfully.');
-                        } catch (error) {
-                            console.error("Error deleting document: ", error);
-                            showNotification('Error', 'Failed to delete product. Please try again.');
-                        }
-                    }, hideNotification);
-            }
-        });
-
-        elements.customerTableContainer.addEventListener('click', (e) => {
-            const editBtn = e.target.closest('.edit-customer-btn');
-            const deleteBtn = e.target.closest('.delete-customer-btn');
-            if (editBtn) {
-                handleAddEditCustomer(true, editBtn.dataset.id);
-            } else if (deleteBtn) {
-                showNotification('Confirm Delete', 'Are you sure you want to delete this customer?', true,
-                    async () => {
-                        try {
-                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', CUSTOMERS_COLLECTION, deleteBtn.dataset.id));
-                            hideNotification();
-                            showNotification('Success!', 'Customer deleted successfully.');
-                        } catch (error) {
-                            console.error("Error deleting document: ", error);
-                            showNotification('Error', 'Failed to delete customer. Please try again.');
-                        }
-                    }, hideNotification);
-            }
-        });
-
-        elements.closeModalBtn.addEventListener('click', hideModal);
-        elements.closeImportModalBtn.addEventListener('click', () => elements.importModal.classList.add('hidden'));
-
-        elements.importBtn.addEventListener('click', () => elements.importModal.classList.remove('hidden'));
-
-        elements.confirmImportBtn.addEventListener('click', async () => {
-            const file = elements.importFile.files[0];
-            const importType = elements.importType.value;
-            if (!file) {
-                showNotification('No File', 'Please select a CSV file to import.');
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const text = e.target.result;
-                const rows = text.split('\n').map(row => row.trim()).filter(row => row.length > 0);
-                const headers = rows[0].split(',').map(header => header.trim());
-                const dataRows = rows.slice(1);
-
-                const dataToImport = dataRows.map(row => {
-                    const values = row.split(',').map(val => val.trim());
-                    const obj = {};
-                    headers.forEach((header, index) => {
-                        obj[header] = values[index];
-                    });
-                    return obj;
-                });
-
-                store.isImporting = true;
-                showNotification('Importing Data...', `Importing ${dataToImport.length} ${importType} records. This may take a moment.`, false, null, null);
-                elements.importModal.classList.add('hidden');
-
-                try {
-                    const collectionRef = collection(db, 'artifacts', appId, 'public', 'data', importType === 'products' ? PRODUCTS_COLLECTION : CUSTOMERS_COLLECTION);
-                    const currentDocs = (await getDocs(collectionRef)).docs;
-                    const batch = db.batch();
-
-                    currentDocs.forEach(doc => batch.delete(doc.ref));
-
-                    dataToImport.forEach(item => {
-                        const docRef = doc(collectionRef);
-                        // Convert numeric fields to numbers
-                        if (importType === 'products') {
-                            item.price = parseFloat(item.price);
-                            item.cost = parseFloat(item.cost) || 0;
-                            item.stock = parseInt(item.stock, 10);
-                        }
-                        batch.set(docRef, item);
-                    });
-
-                    await batch.commit();
-                    showNotification('Import Complete', `Successfully imported ${dataToImport.length} ${importType} records.`);
-                } catch (error) {
-                    console.error("Error importing data:", error);
-                    showNotification('Import Failed', 'An error occurred during import. Please check your CSV format and try again.');
-                } finally {
-                    store.isImporting = false;
-                }
+        // Add/Edit Product
+        elements.productForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = elements.productId.value;
+            const data = {
+                name: elements.productName.value,
+                supplier: elements.productSupplier.value,
+                price: parseFloat(elements.productPrice.value),
+                buyingPrice: parseFloat(elements.productBuyingPrice.value),
+                stock: parseInt(elements.productStock.value, 10),
+                barcode: elements.productBarcode.value || null,
+                photoUrl: elements.productPhotoUrl.value || null,
             };
-            reader.readAsText(file);
-        });
 
-        elements.exportAllDataBtn.addEventListener('click', async () => {
             try {
-                const products = (await getDocs(collection(db, 'artifacts', appId, 'public', 'data', PRODUCTS_COLLECTION))).docs.map(doc => doc.data());
-                const customers = (await getDocs(collection(db, 'artifacts', appId, 'public', 'data', CUSTOMERS_COLLECTION))).docs.map(doc => doc.data());
-                const sales = (await getDocs(collection(db, 'artifacts', appId, 'public', 'data', SALES_COLLECTION))).docs.map(doc => doc.data());
-
-                const data = {
-                    products,
-                    customers,
-                    sales
-                };
-                const json = JSON.stringify(data, null, 2);
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `wholesale_data_export_${new Date().toISOString()}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                showNotification('Export Complete', 'All data has been successfully exported as a JSON file.');
+                if (id) {
+                    await updateDoc(doc(getFirestorePath(PRODUCTS_COLLECTION), id), data);
+                } else {
+                    await addDoc(getFirestorePath(PRODUCTS_COLLECTION), data);
+                }
+                showModal('Success', 'Product saved successfully!', false, null, true, hideModal);
+                elements.productForm.reset();
+                elements.productPhotoPreview.src = 'https://placehold.co/128x128/e5e7eb/4b5563?text=No+Image';
             } catch (error) {
-                console.error("Error exporting data: ", error);
-                showNotification('Export Failed', 'An error occurred during data export. Please try again.');
+                console.error("Error saving product:", error);
+                showModal('Error', 'Failed to save product. Please try again.', false, null, true, hideModal);
+            }
+        });
+        
+        // Scan barcode button
+        elements.scanBarcodeBtn.addEventListener('click', startBarcodeScanner);
+
+        // Edit/Delete Product from table
+        elements.productTableBody.addEventListener('click', async (e) => {
+            const id = e.target.getAttribute('data-id');
+            if (e.target.classList.contains('edit-btn')) {
+                const product = store.products.find(p => p.id === id);
+                if (product) {
+                    elements.productId.value = product.id;
+                    elements.productName.value = product.name;
+                    elements.productSupplier.value = product.supplier || '';
+                    elements.productPrice.value = product.price;
+                    elements.productBuyingPrice.value = product.buyingPrice;
+                    elements.productStock.value = product.stock;
+                    elements.productBarcode.value = product.barcode || '';
+                    elements.productPhotoUrl.value = product.photoUrl || '';
+                    elements.productPhotoPreview.src = product.photoUrl || 'https://placehold.co/128x128/e5e7eb/4b5563?text=No+Image';
+                    document.querySelector('[data-tab="products"]').click();
+                }
+            } else if (e.target.classList.contains('delete-btn')) {
+                showModal('Confirm Deletion', 'Are you sure you want to delete this product? This action cannot be undone.', true, async () => {
+                    try {
+                        await deleteDoc(doc(getFirestorePath(PRODUCTS_COLLECTION), id));
+                        showModal('Success', 'Product deleted successfully!', false, null, true, hideModal);
+                    } catch (error) {
+                        console.error("Error deleting product:", error);
+                        showModal('Error', 'Failed to delete product. Please try again.', false, null, true, hideModal);
+                    }
+                }, true, hideModal);
             }
         });
 
-        // =================================
-        // Main App Logic
-        // =================================
+        // Add/Edit Customer
+        elements.customerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = elements.customerId.value;
+            const data = {
+                name: elements.customerName.value,
+                phone: elements.customerPhone.value,
+                city: elements.customerCity.value,
+                township: elements.customerTownship.value,
+            };
 
-        const setupFirestoreListeners = () => {
-            // Products Listener
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', PRODUCTS_COLLECTION), (snapshot) => {
-                store.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderProducts();
-                renderProductTable();
-                if (!store.isImporting) {
-                    calculateReports();
+            try {
+                if (id) {
+                    await updateDoc(doc(getFirestorePath(CUSTOMERS_COLLECTION), id), data);
+                } else {
+                    await addDoc(getFirestorePath(CUSTOMERS_COLLECTION), data);
+                }
+                showModal('Success', 'Customer saved successfully!', false, null, true, hideModal);
+                elements.customerForm.reset();
+            } catch (error) {
+                console.error("Error saving customer:", error);
+                showModal('Error', 'Failed to save customer. Please try again.', false, null, true, hideModal);
+            }
+        });
+
+        // Edit/Delete Customer from table
+        elements.customerTableBody.addEventListener('click', async (e) => {
+            const id = e.target.getAttribute('data-id');
+            if (e.target.classList.contains('edit-btn')) {
+                const customer = store.customers.find(c => c.id === id);
+                if (customer) {
+                    elements.customerId.value = customer.id;
+                    elements.customerName.value = customer.name;
+                    elements.customerPhone.value = customer.phone;
+                    elements.customerCity.value = customer.city;
+                    elements.customerTownship.value = customer.township;
+                    document.querySelector('[data-tab="customers"]').click();
+                }
+            } else if (e.target.classList.contains('delete-btn')) {
+                showModal('Confirm Deletion', 'Are you sure you want to delete this customer? This action cannot be undone.', true, async () => {
+                    try {
+                        await deleteDoc(doc(getFirestorePath(CUSTOMERS_COLLECTION), id));
+                        showModal('Success', 'Customer deleted successfully!', false, null, true, hideModal);
+                    } catch (error) {
+                        console.error("Error deleting customer:", error);
+                        showModal('Error', 'Failed to delete customer. Please try again.', false, null, true, hideModal);
+                    }
+                }, true, hideModal);
+            }
+        });
+
+        // Remove from cart
+        elements.cartList.addEventListener('click', (e) => {
+            if (e.target.closest('.remove-from-cart')) {
+                const productId = e.target.closest('.remove-from-cart').getAttribute('data-product-id');
+                removeFromCart(productId);
+            }
+        });
+
+        // Process Sale
+        elements.processSaleBtn.addEventListener('click', handleProcessSale);
+
+        // Receipt modal buttons
+        elements.printReceiptBtn.addEventListener('click', handlePrintReceipt);
+        elements.closeReceiptBtn.addEventListener('click', () => elements.receiptModal.classList.add('hidden'));
+
+        // Settings Form
+        elements.settingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const settingsData = {
+                    companyName: elements.companyNameInput.value,
+                    logoUrl: elements.companyLogoUrlInput.value,
+                    dataStorageLocation: elements.dataStorageSelect.value,
+                };
+                const userId = auth.currentUser?.uid;
+                if (!userId) throw new Error("User not authenticated.");
+
+                const settingsRef = doc(db, 'artifacts', appId, 'users', userId, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
+                await setDoc(settingsRef, settingsData);
+                showModal('Success', 'Company settings saved!', false, null, true, hideModal);
+            } catch (error) {
+                console.error("Error saving settings:", error);
+                showModal('Error', 'Failed to save settings. ' + error.message, false, null, true, hideModal);
+            }
+        });
+        
+        // Data Storage Select change handler
+        elements.dataStorageSelect.addEventListener('change', (e) => {
+            store.settings.dataStorageLocation = e.target.value;
+            // Unsubscribe from old listeners and subscribe to new ones
+            if (isAuthReady) {
+                unsubscribeDataListeners();
+                setupDataListeners();
+            }
+        });
+
+        // Logo upload functionality
+        elements.logoDropArea.addEventListener('click', () => elements.logoUploadInput.click());
+        elements.logoUploadInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                showModal('File too large', 'Please upload an image smaller than 2MB.', false, null, true, hideModal);
+                return;
+            }
+
+            try {
+                showModal('Uploading...', 'Please wait while your logo is being uploaded.', false, null, false);
+                const userId = auth.currentUser?.uid;
+                const storageRef = ref(storage, `logos/${userId}/${file.name}`);
+                await uploadBytes(storageRef, file);
+                const logoUrl = await getDownloadURL(storageRef);
+                elements.companyLogoUrlInput.value = logoUrl;
+                elements.logoPreview.src = logoUrl;
+                hideModal();
+                showModal('Success', 'Logo uploaded successfully!', false, null, true, hideModal);
+            } catch (error) {
+                console.error("Error uploading logo:", error);
+                hideModal();
+                showModal('Error', 'Failed to upload logo. Please try again.', false, null, true, hideModal);
+            }
+        });
+        
+        elements.companyLogoUrlInput.addEventListener('input', () => {
+            elements.logoPreview.src = elements.companyLogoUrlInput.value || 'https://placehold.co/60x60/888888/ffffff?text=Logo';
+        });
+
+        // Product Photo upload functionality
+        elements.productPhotoDropArea.addEventListener('click', () => elements.productPhotoUpload.click());
+        elements.productPhotoUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 2 * 1024 * 1024) { // 2MB limit
+                showModal('File too large', 'Please upload an image smaller than 2MB.', false, null, true, hideModal);
+                return;
+            }
+
+            try {
+                showModal('Uploading...', 'Please wait while the photo is being uploaded.', false, null, false);
+                const userId = auth.currentUser?.uid;
+                const storageRef = ref(storage, `product_photos/${userId}/${file.name}`);
+                await uploadBytes(storageRef, file);
+                const photoUrl = await getDownloadURL(storageRef);
+                elements.productPhotoUrl.value = photoUrl;
+                elements.productPhotoPreview.src = photoUrl;
+                hideModal();
+                showModal('Success', 'Product photo uploaded successfully!', false, null, true, hideModal);
+            } catch (error) {
+                console.error("Error uploading photo:", error);
+                hideModal();
+                showModal('Error', 'Failed to upload photo. Please try again.', false, null, true, hideModal);
+            }
+        });
+        elements.productPhotoUrl.addEventListener('input', (e) => {
+            elements.productPhotoPreview.src = e.target.value || 'https://placehold.co/128x128/e5e7eb/4b5563?text=No+Image';
+        });
+    };
+    
+    // --- Firestore Listeners Management ---
+    const unsubscribeDataListeners = () => {
+        if (unsubscribeProducts) unsubscribeProducts();
+        if (unsubscribeCustomers) unsubscribeCustomers();
+        if (unsubscribeSales) unsubscribeSales();
+    };
+
+    const setupDataListeners = () => {
+        unsubscribeDataListeners(); // Unsubscribe from previous collections
+
+        // Products Listener
+        unsubscribeProducts = onSnapshot(getFirestorePath(PRODUCTS_COLLECTION), (snapshot) => {
+            store.products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderProducts();
+            renderProductTable();
+        });
+
+        // Customers Listener
+        unsubscribeCustomers = onSnapshot(getFirestorePath(CUSTOMERS_COLLECTION), (snapshot) => {
+            store.customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderCustomerSelect();
+            renderCustomerTable();
+        });
+
+        // Sales Listener
+        unsubscribeSales = onSnapshot(getFirestorePath(SALES_COLLECTION), (snapshot) => {
+            store.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderSalesHistoryTable();
+            calculateAndRenderSalesSummary();
+            renderSalesCharts();
+        });
+    };
+
+    const setupSettingsListener = (userId) => {
+        const settingsRef = doc(db, 'artifacts', appId, 'users', userId, SETTINGS_COLLECTION, SETTINGS_DOC_ID);
+        unsubscribeSettings = onSnapshot(settingsRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const newSettings = docSnap.data();
+                // Check if the data storage location has changed
+                if (store.settings.dataStorageLocation !== newSettings.dataStorageLocation) {
+                    store.settings = newSettings;
+                    // Re-setup data listeners with the new path
+                    setupDataListeners();
+                } else {
+                    store.settings = newSettings;
+                }
+            }
+            // Update UI with loaded/updated settings
+            elements.companyNameInput.value = store.settings.companyName;
+            elements.companyLogoUrlInput.value = store.settings.logoUrl;
+            elements.logoPreview.src = store.settings.logoUrl;
+            elements.companyNamePreview.textContent = store.settings.companyName;
+            elements.dataStorageSelect.value = store.settings.dataStorageLocation;
+        }, (error) => {
+            console.error("Error fetching settings:", error);
+        });
+    };
+
+    // --- Firebase Initialization & Authentication ---
+    const initFirebase = async () => {
+        try {
+            if (!Object.keys(firebaseConfig).length) {
+                console.error("Firebase config is missing.");
+                showModal('Configuration Error', 'Firebase configuration is not available. Please contact support.', false, null, true, hideModal);
+                return;
+            }
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+            storage = getStorage(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userProfile = user;
+                    const userId = user.uid;
+                    elements.userDisplayName.textContent = `User: ${userId.substring(0, 8)}`;
+                    elements.authModal.classList.add('hidden');
+                    elements.appContainer.classList.remove('hidden');
+                    isAuthReady = true;
+                    // Set up the settings listener first, which will in turn trigger data listeners
+                    setupSettingsListener(userId);
+                } else {
+                    elements.authModal.classList.remove('hidden');
+                    elements.appContainer.classList.add('hidden');
+                    isAuthReady = false;
+                    unsubscribeDataListeners();
+                    if (unsubscribeSettings) unsubscribeSettings();
                 }
             });
 
-            // Customers Listener
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', CUSTOMERS_COLLECTION), (snapshot) => {
-                store.customers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderCustomerSelect();
-                renderCustomerTable();
-            });
+            if (initialAuthToken) {
+                await signInWithCustomToken(auth, initialAuthToken);
+            } else {
+                await signInAnonymously(auth);
+            }
 
-            // Sales Listener
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', SALES_COLLECTION), (snapshot) => {
-                store.sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderSalesHistoryTable();
-                if (!store.isImporting) {
-                    calculateReports();
-                }
-            });
-        };
+        } catch (error) {
+            console.error("Firebase init failed:", error);
+            showModal('Authentication Failed', 'Unable to authenticate. ' + error.message, false, null, true, hideModal);
+        }
+    };
 
-        // Initialize the app directly since authentication is removed
-        setupFirestoreListeners();
-        elements.appContainer.classList.remove('hidden');
-
-    </script>
+    // Initialize the application
+    window.onload = () => {
+        initFirebase();
+        setupEventListeners();
+    };
+</script>
 
 </body>
 </html>
